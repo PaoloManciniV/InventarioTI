@@ -1,0 +1,12 @@
+Options -Indexes
+
+# nada de configuracion, sql, respaldos ni archivos ocultos
+<FilesMatch "(^\.|\.(env|sql|md|log|bak|old|zip|tar|gz|7z|ini|sh|py|json|lock|dist|example)$|^(README|LEEME|composer|instalar))">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # carpetas internas nunca se sirven directo
+  RewriteRule ^(inc|sql|uploads|\.git)(/|$) - [F,L]
+</IfModule>

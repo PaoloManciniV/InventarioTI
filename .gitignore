@@ -1,0 +1,22 @@
+# configuracion y llaves: nunca al repo
+.env
+*.env
+!.env.example
+env.bak
+
+# datos: la base no va al repo (es publico)
+sql/
+*.sql
+!schema.sql
+
+# archivos subidos: firmas, actas escaneadas, descargas
+uploads/*
+!uploads/.gitkeep
+!uploads/*/
+uploads/*/*
+!uploads/*/.gitkeep
+
+# varios
+*.log
+.DS_Store
+Thumbs.db
