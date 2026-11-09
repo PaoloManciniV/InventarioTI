@@ -63,8 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div style="position:fixed;top:14px;right:14px"><button type="button" class="tema-btn" data-tema-toggle title="Cambiar modo claro / oscuro"><svg class="luna" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sol" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button></div>
 <div class="caja"><form method="post">
-  <div class="marca" style="padding:0"><span class="logo">AC</span><span>inventario<small>agro-costa:~/sistemas$</small></span></div>
-  <div class="prompt"><b>$</b> ssh sistemas@agro-costa <span style="animation:parpadeo 1s steps(1) infinite">_</span></div>
+  <div class="marca" style="padding:0"><span class="logo">AC</span><span>inventario<small>empresa:~/sistemas$</small></span></div>
+  <div class="prompt"><b>$</b> ssh sistemas@empresa <span style="animation:parpadeo 1s steps(1) infinite">_</span></div>
   <?php if ($error): ?><div class="aviso aviso-error" style="margin:0"><?= e($error) ?></div><?php endif; ?>
   <?= csrf_campo() ?>
   <div class="campo"><label>Usuario o correo</label><input type="text" name="email" required autofocus autocomplete="username" autocapitalize="off" spellcheck="false" value="<?= e($_POST['email'] ?? '') ?>"></div>
