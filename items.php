@@ -104,7 +104,7 @@ require __DIR__ . '/inc/header.php';
       <td class="mono"><a href="item.php?id=<?= $i['id'] ?>"><?= e($i['etiqueta']) ?></a></td>
       <td><b><?= e($i['nombre']) ?></b><small><?= e(trim($i['marca'] . ' ' . $i['modelo'])) ?><?= $i['cantidad'] > 1 ? ' · x' . $i['cantidad'] : '' ?></small></td>
       <td class="mono"><?= e($i['serial'] ?: '—') ?><?= $i['ip'] ? '<small>' . e($i['ip']) . '</small>' : '' ?></td>
-      <td><?= chip_estado($i['estado']) ?><?= chip_condicion($i['condicion'] ?? null) ?></td>
+      <td><?= chip_estado($i['estado']) ?><?= chip_condicion($i['condicion'] ?? null, $i['id']) ?></td>
       <?php $libre = in_array($i['estado'], ['disponible', 'danado'], true); ?>
       <td><?= $i['responsable'] ? e($i['responsable']) : ($libre ? 'Sistemas' : ($i['ubicacion'] ? '<span class="tenue">' . e($i['ubicacion']) . '</span>' : '<span class="tenue">—</span>')) ?>
         <?php if (in_array($i['estado'], ['disponible', 'danado'], true) && !empty($i['ultimo_dueno'])): ?><small class="tenue">antes: <?= e($i['ultimo_dueno']) ?></small><?php endif; ?></td>

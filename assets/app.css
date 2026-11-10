@@ -467,3 +467,15 @@ tr.fila-servidor td:first-child { box-shadow: inset 4px 0 0 #b052ff; }
 .chip-microsip { background: rgba(59, 130, 246, .14); color: #3b82f6; border: 1px solid rgba(59, 130, 246, .4); }
 .chip-cond-nuevo { background: rgba(22, 163, 74, .12); color: #16a34a; border: 1px solid rgba(22, 163, 74, .4); margin-left: 4px; }
 .chip-cond-usado { background: rgba(127, 127, 127, .14); color: var(--tenue); border: 1px solid rgba(127, 127, 127, .35); margin-left: 4px; }
+
+/* nota visible (condicion) editable desde la lista */
+button.chip.cond-editable { cursor: pointer; font-family: var(--mono); font-size: 11px; font-weight: 600; line-height: normal; padding: 2px 8px; }
+button.cond-editable:hover { filter: brightness(1.15); outline: 1px dashed currentColor; }
+.cond-mas { background: none; border: 1px dashed var(--borde); color: var(--tenue); border-radius: 4px; font-size: 11px; padding: 1px 6px; margin-left: 4px; cursor: pointer; opacity: 0; transition: opacity .12s; }
+tr:hover .cond-mas, .ficha .cond-mas, .cond-mas:focus { opacity: 1; }
+.cond-mas:hover { color: var(--texto); border-color: var(--texto); }
+.cond-pop { position: absolute; z-index: 60; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px; padding: 10px; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.cond-pop label { display: block; font-size: 11px; color: var(--tenue); margin-bottom: 4px; }
+.cond-pop input { width: 100%; }
+.cond-pop .cond-acc { display: flex; gap: 6px; margin-top: 8px; }
+@media (hover: none) { .cond-mas { opacity: 1; } }

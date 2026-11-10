@@ -47,7 +47,7 @@ $tipo_txt = fn($x) => !empty($x['prestamo']) ? 'Préstamo' : ($x['tipo'] === 'en
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=25">
+<link rel="stylesheet" href="assets/app.css?v=27">
 </head>
 <body>
 <div class="publico">
@@ -124,6 +124,6 @@ $tipo_txt = fn($x) => !empty($x['prestamo']) ? 'Préstamo' : ($x['tipo'] === 'en
   <p><a class="tenue" href="acta.php?id=<?= $id ?>#firmar">Mandar enlace o correo en vez de firmar aquí</a></p>
 <?php endif; ?>
 </div>
-<script src="assets/app.js?v=7"></script>
+<script src="assets/app.js?v=8"></script>
 </body>
 </html>

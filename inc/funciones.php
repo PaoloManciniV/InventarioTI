@@ -310,8 +310,14 @@ function chip_estado($estado) {
 }
 
 // condicion fisica (mal estado, sin disco...): chip rojo pequeno al lado del estado
-function chip_condicion($c) {
+// con $item_id y siendo admin se puede poner, editar o quitar ahi mismo (assets/app.js -> condicion.php)
+function chip_condicion($c, $item_id = null) {
     $c = trim((string)$c);
+    if ($item_id && es_admin()) {
+        if ($c === '') return ' <button type="button" class="cond-mas no-imprimir" data-condicion data-id="' . (int)$item_id . '" data-valor="" title="Agregar una nota visible (condición)">+ nota</button>';
+        $cl = preg_match('#^nuev#iu', $c) ? 'chip-cond-nuevo' : (preg_match('#^usad#iu', $c) ? 'chip-cond-usado' : 'chip-condicion');
+        return ' <button type="button" class="chip ' . $cl . ' cond-editable" data-condicion data-id="' . (int)$item_id . '" data-valor="' . e($c) . '" title="Clic para editar o quitar">' . e($c) . '</button>';
+    }
     if ($c === '') return '';
     // nuevo en verde, usado en gris, cualquier falla en rojo
     $cl = preg_match('#^nuev#iu', $c) ? 'chip-cond-nuevo' : (preg_match('#^usad#iu', $c) ? 'chip-cond-usado' : 'chip-condicion');

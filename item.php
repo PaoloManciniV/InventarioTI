@@ -232,7 +232,7 @@ require __DIR__ . '/inc/header.php';
   <div>
     <div class="tarjeta">
       <div class="ficha">
-        <div><small>Estado</small><span><?= chip_estado($item['estado']) ?><?= chip_condicion($item['condicion'] ?? null) ?></span></div>
+        <div><small>Estado</small><span><?= chip_estado($item['estado']) ?><?= chip_condicion($item['condicion'] ?? null, $id) ?></span></div>
         <div><small>Responsable</small><span><?php if (in_array($item['estado'], ['disponible', 'danado'], true) && !empty($item['ultimo_dueno'])): ?>Sistemas<small class="tenue">antes: <?= e($item['ultimo_dueno']) ?></small><?php else: ?><?= $item['estado'] === 'cedido' ? 'Cedido a ' . e($item['ubicacion'] ?: 'otra empresa') : (in_array($item['estado'], ['asignado', 'instalado'], true) && !$item['colaborador_id'] ? e($item['ubicacion'] ?: 'Su ubicación') : ($item['estado'] === 'prestado' ? '<b>Sistemas</b> · prestado a ' . ($item['prestado_a'] ? '<a href="colaborador.php?id=' . (int)$item['prestado_a'] . '">' . e($item['prestado_nombre']) . '</a>' : '—') : ($item['responsable'] ? '<a href="colaborador.php?id=' . $item['resp_id'] . '">' . e($item['responsable']) . '</a>' : '—'))) ?><?php endif; ?></span></div>
         <div><small>Categoria</small><span><?= e(($item['categoria'] === 'Computador' ? tipo_pc($item) : $item['categoria']) ?: '—') ?></span></div>
         <div><small>Bodega</small><span><?= e($item['sede'] ?: '—') ?></span></div>

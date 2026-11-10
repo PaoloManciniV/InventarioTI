@@ -232,3 +232,47 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
+
+// condicion visible de un item (nota bajo el estado): poner, editar o quitar ahi mismo
+(function () {
+  var pop = null;
+  var SUG = ['Nuevo', 'Usado', 'Mal estado', 'No sirve', 'Pantalla rota', 'Batería dañada', 'Sin disco', 'Sin cargador'];
+  function cerrar() { if (pop) { pop.remove(); pop = null; } }
+  function guardar(b, valor, boton) {
+    var f = new FormData();
+    f.append('csrf', (document.querySelector('meta[name=csrf]') || {}).content || '');
+    f.append('id', b.dataset.id); f.append('condicion', valor);
+    boton.disabled = true;
+    fetch('condicion.php', { method: 'POST', body: f, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || 'No se pudo guardar');
+        var t = document.createElement('span'); t.innerHTML = j.html.trim();
+        b.replaceWith(t.firstChild); cerrar();
+      })
+      .catch(function (e) { boton.disabled = false; alert(e.message || 'No se pudo guardar'); });
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-condicion]');
+    if (!b) { if (pop && !pop.contains(ev.target)) cerrar(); return; }
+    ev.preventDefault(); ev.stopPropagation();
+    cerrar();
+    pop = document.createElement('div'); pop.className = 'cond-pop';
+    var lista = 'cond-sug-' + b.dataset.id;
+    pop.innerHTML = '<label>Nota visible (condición)</label><input maxlength="120" list="' + lista + '" placeholder="Ej. Batería dañada, no sirve">' +
+      '<datalist id="' + lista + '">' + SUG.map(function (s) { return '<option value="' + s + '">'; }).join('') + '</datalist>' +
+      '<div class="cond-acc"><button type="button" class="btn btn-primario btn-sm" data-g>Guardar</button>' +
+      (b.dataset.valor ? '<button type="button" class="btn btn-borde btn-sm" data-q>Quitar</button>' : '') +
+      '<button type="button" class="btn btn-borde btn-sm" data-c>Cancelar</button></div>';
+    document.body.appendChild(pop);
+    var r = b.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8)) + 'px';
+    var inp = pop.querySelector('input'); inp.value = b.dataset.valor || ''; inp.focus(); inp.select();
+    pop.addEventListener('click', function (e) { e.stopPropagation(); });
+    pop.querySelector('[data-g]').addEventListener('click', function () { guardar(b, inp.value.trim(), this); });
+    var q = pop.querySelector('[data-q]'); if (q) q.addEventListener('click', function () { guardar(b, '', this); });
+    pop.querySelector('[data-c]').addEventListener('click', cerrar);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); guardar(b, inp.value.trim(), pop.querySelector('[data-g]')); } if (e.key === 'Escape') cerrar(); });
+  }, true);
+})();
