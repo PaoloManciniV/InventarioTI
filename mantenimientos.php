@@ -24,7 +24,8 @@ foreach ($items as $i) {
     $prox = proximo_mant($i);
     $vencido = $i['estado'] !== 'danado' && $prox <= $hoy;
     if ($vencido) $tot['vencidos']++;
-    if ($anio === (int)date('Y') && in_array($mes_actual, $plan, true) && empty($hechos[$i['id']][$mes_actual])) $tot['mes']++;
+    // los dañados no se cuentan: no se les va a hacer el preventivo
+    if ($i['estado'] !== 'danado' && $anio === (int)date('Y') && in_array($mes_actual, $plan, true) && empty($hechos[$i['id']][$mes_actual])) $tot['mes']++;
     $tot['hechos'] += count(array_merge(...array_values($hechos[$i['id']] ?? [[]])));
     if ($ver === 'vencidos' && !$vencido) continue;
     $filas[] = ['i' => $i, 'plan' => $plan, 'prox' => $prox, 'vencido' => $vencido];
@@ -44,7 +45,7 @@ require __DIR__ . '/inc/header.php';
 
 <div class="kpis">
   <a class="kpi" href="?anio=<?= $anio ?>&ver=vencidos"><small>Vencidos hoy</small><b style="color:var(--rojo)"><?= $tot['vencidos'] ?></b></a>
-  <div class="kpi"><small>Programados este mes sin hacer</small><b><?= $tot['mes'] ?></b></div>
+  <div class="kpi"><small>Programados este mes</small><b><?= $tot['mes'] ?></b></div>
   <div class="kpi"><small>Realizados en <?= $anio ?></small><b><?= $tot['hechos'] ?></b></div>
   <div class="kpi"><small>Equipos en el plan</small><b><?= count($items) ?></b></div>
 </div>
