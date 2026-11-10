@@ -99,7 +99,7 @@ function campos_legibles() {
     return ['etiqueta' => 'Etiqueta', 'nombre' => 'Nombre', 'marca' => 'Marca', 'modelo' => 'Modelo', 'serial' => 'Serial', 'especificaciones' => 'Especificaciones',
         'notas' => 'Notas', 'condicion' => 'Condición', 'fecha_compra' => 'Fecha de compra', 'valor' => 'Valor', 'categoria_id' => 'Categoría', 'sede_id' => 'Bodega', 'ubicacion' => 'Ubicación',
         'ip' => 'IP', 'mac' => 'MAC', 'hostname' => 'Hostname', 'extension' => 'Extensión', 'consumible' => 'Tóner', 'mant_meses' => 'Mantenimiento cada (meses)',
-        'formato' => 'Formato', 'proximo_mant' => 'Próximo mantenimiento', 'cantidad' => 'Cantidad', 'clave_cifrada' => 'PIN / clave', 'estado' => 'Estado',
+        'formato' => 'Formato', 'proximo_mant' => 'Próximo mantenimiento', 'cantidad' => 'Cantidad', 'clave_cifrada' => 'PIN / clave', 'estado' => 'Estado', 'responsable' => 'Responsable',
         'cedula' => 'Cédula', 'cargo' => 'Cargo', 'area_id' => 'Área', 'area' => 'Área', 'grupo' => 'Grupo', 'email' => 'Correo', 'telefono' => 'Teléfono',
         'activo' => 'Activo', 'ssid' => 'Red (SSID)', 'banda' => 'Banda', 'seguridad' => 'Seguridad', 'aps' => 'Access points', 'rol' => 'Rol', 'permisos' => 'Módulos',
         'password_hash' => 'Clave', 'usuario' => 'Usuario de ingreso', 'prefijo' => 'Prefijo', 'grupos' => 'Grupos', 'colaborador_id' => 'Responsable', 'orden' => 'Orden en la lista', 'para_que' => 'Para qué sirve', 'url' => 'Link', 'version' => 'Versión'];
@@ -829,7 +829,7 @@ function linea_tiempo_item($id) {
     $st->execute([$id]);
     foreach ($st->fetchAll() as $m) {
         if (mov_repetido($m['tipo'])) continue;
-        $clase = in_array($m['tipo'], ['danado', 'baja', 'extraviado'], true) ? 'alerta' : 'sistema';
+        $clase = in_array($m['tipo'], ['danado', 'baja', 'extraviado'], true) ? 'alerta' : ($m['tipo'] === 'cambio_dueno' ? 'entrega' : 'sistema');
         $ev[] = evento(substr($m['fecha'], 0, 10), $clase, $m['detalle'], $m['usuario'] ? 'Por ' . $m['usuario'] : '');
     }
     usort($ev, fn($a, $b) => strcmp($b['fecha'], $a['fecha']));
@@ -858,6 +858,15 @@ function tenencias_item($item) {
         WHERE ai.item_id = ? AND a.estado <> 'anulada' ORDER BY a.fecha, a.id");
     $st->execute([$item['id']]);
     $ev = $st->fetchAll();
+    // cambios de responsable hechos a mano (sin acta) tambien abren y cierran periodos
+    $st = db()->prepare("SELECT NULL acta_id, NULL consecutivo, DATE(m.fecha) fecha, IF(m.colaborador_id IS NULL, 'devolucion', 'entrega') tipo, 0 prestamo,
+        COALESCE(c.nombre, 'Sistemas') nombre, c.id, COALESCE(c.activo, 1) activo, m.id mov_id FROM movimientos m LEFT JOIN colaboradores c ON c.id = m.colaborador_id
+        WHERE m.item_id = ? AND m.tipo = 'cambio_dueno'");
+    $st->execute([$item['id']]);
+    if ($man = $st->fetchAll()) {
+        $ev = array_merge($ev, $man);
+        usort($ev, fn($a, $b) => [$a['fecha'], $a['acta_id'] === null ? 1 : 0, (int)($a['acta_id'] ?? $a['mov_id'])] <=> [$b['fecha'], $b['acta_id'] === null ? 1 : 0, (int)($b['acta_id'] ?? $b['mov_id'])]);
+    }
     $hoy = date('Y-m-d');
     $lista = [];
     foreach ($ev as $n => $a) {

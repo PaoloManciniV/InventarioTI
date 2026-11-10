@@ -42,6 +42,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
         ir('item.php?id=' . $id);
     }
 
+    // cambiar el responsable a mano (sin acta): queda en la hoja de vida, en quien lo ha tenido y en ver cambios
+    if ($accion === 'propietario' && $item) {
+        $nuevo = (int)($_POST['colaborador_id'] ?? 0);
+        $motivo = trim($_POST['motivo'] ?? '');
+        $fecha = preg_match('#^\d{4}-\d{2}-\d{2}$#', $_POST['fecha'] ?? '') && $_POST['fecha'] <= date('Y-m-d') ? $_POST['fecha'] : date('Y-m-d');
+        $antes_id = (int)($item['colaborador_id'] ?? 0);
+        $nombre = function ($cid) { if (!$cid) return 'Sistemas'; $s = db()->prepare('SELECT nombre FROM colaboradores WHERE id = ?'); $s->execute([$cid]); return $s->fetchColumn() ?: '¿?'; };
+        if (!in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado'], true)) flash('Con el equipo ' . estados_item()[$item['estado']] . ' no se cambia el responsable aquí', 'error');
+        elseif ($motivo === '') flash('Escribe el motivo del cambio', 'error');
+        elseif ($nuevo === $antes_id) flash('Ese ya es el responsable', 'error');
+        elseif ($nuevo && !$nombre($nuevo)) flash('Colaborador no válido', 'error');
+        else {
+            $de = $nombre($antes_id);
+            $a = $nombre($nuevo);
+            if ($antes_id) guardar_ultimo_dueno($id);
+            $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado'], true) ? 'disponible' : $item['estado']);
+            db()->prepare('UPDATE items SET colaborador_id = ?, estado = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')->execute([$nuevo ?: null, $estado, $id]);
+            if (!$nuevo) quitar_ip_si_libre($id);
+            db()->prepare('INSERT INTO movimientos (item_id, tipo, colaborador_id, usuario_id, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$id, 'cambio_dueno', $nuevo ?: null, usuario()['id'], 'Cambio de responsable: de ' . $de . ' a ' . $a . ' — ' . $motivo, $fecha . ' ' . date('H:i:s')]);
+            auditar('items', $id, ['responsable' => $de, 'estado' => $item['estado']], ['responsable' => $a, 'estado' => $estado], $motivo);
+            flash('Responsable cambiado: ahora lo tiene ' . $a);
+        }
+        ir('item.php?id=' . $id);
+    }
+
     // separar un combo (teclado + mouse...) en items sueltos, para entregar o prestar solo una parte
     if ($accion === 'separar' && $item) {
         $partes = array_values(array_filter(array_map('trim', preg_split('#\r?\n#', (string)($_POST['partes'] ?? ''))), fn($x) => $x !== ''));
@@ -248,6 +274,24 @@ require __DIR__ . '/inc/header.php';
   </div>
   <div>
     <?php if (es_admin()): ?>
+    <?php if (in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado'], true)):
+      $gente = db()->query('SELECT id, nombre, area FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll(); ?>
+    <form method="post" class="tarjeta">
+      <?= csrf_campo() ?><input type="hidden" name="accion" value="propietario">
+      <h2>Cambiar responsable</h2>
+      <div class="campo"><label>Ahora lo tiene</label><select name="colaborador_id" data-buscar required>
+        <option value="">Escribe el nombre…</option>
+        <option value="0" <?= empty($item['colaborador_id']) ? 'disabled' : '' ?>>Sistemas (sin responsable, vuelve a estar libre)</option>
+        <?php foreach ($gente as $g): if ((int)$g['id'] === (int)$item['colaborador_id']) continue; ?><option value="<?= $g['id'] ?>"><?= e($g['nombre']) ?><?= $g['area'] ? ' · ' . e($g['area']) : '' ?></option><?php endforeach; ?>
+      </select></div>
+      <div class="rejilla" style="margin-top:8px">
+        <div class="campo"><label>Desde</label><input type="date" name="fecha" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>"></div>
+        <div class="campo"><label>Motivo</label><input name="motivo" required placeholder="Ej. se lo pasaron en el área"></div>
+      </div>
+      <button class="btn btn-borde btn-sm" style="margin-top:8px">Cambiar</button>
+      <p class="tenue" style="margin-bottom:0">Queda en la hoja de vida, en "quién lo ha tenido" y en Ver cambios. Si necesitas la firma de quien lo recibe, usa Entregar.</p>
+    </form>
+    <?php endif; ?>
     <form method="post" class="tarjeta">
       <?= csrf_campo() ?><input type="hidden" name="accion" value="estado">
       <h2>Cambiar estado</h2>
