@@ -49,7 +49,20 @@ $st = db()->prepare('SELECT i.*, cat.nombre categoria, c.nombre responsable, c.a
     WHERE ' . implode(' AND ', $where) . ($vista === 'extensiones' ? ' ORDER BY CAST(i.extension AS UNSIGNED)' : ' ORDER BY INET_ATON(i.ip), i.ip'));
 $st->execute($par);
 $filas = $st->fetchAll();
-$hist = cambios_de_varios('items', array_column($filas, 'id'), 10);
+// extensiones sin telefono fisico: la persona llama desde el pc con microsip
+if ($vista === 'extensiones') {
+    $w = ["c.activo = 1", "COALESCE(c.extension_pc, '') <> ''"];
+    $p2 = [];
+    if ($q !== '') { $w[] = '(c.extension_pc LIKE ? OR c.nombre LIKE ? OR c.area LIKE ?)'; array_push($p2, "%$q%", "%$q%", "%$q%"); }
+    if ($cat === '') {
+        $st = db()->prepare("SELECT NULL id, c.extension_pc extension, c.nombre responsable, COALESCE(a.nombre, c.area) area, NULL ip, NULL etiqueta, NULL ubicacion, NULL nombre, c.id colab_id
+            FROM colaboradores c LEFT JOIN areas a ON a.id = c.area_id WHERE " . implode(' AND ', $w));
+        $st->execute($p2);
+        $filas = array_merge($filas, $st->fetchAll());
+        usort($filas, fn($x, $y) => (int)$x['extension'] <=> (int)$y['extension']);
+    }
+}
+$hist = cambios_de_varios('items', array_values(array_filter(array_column($filas, 'id'))), 10);
 $volver = rawurlencode('red.php?' . http_build_query(array_filter(['vista' => $vista, 'q' => $q, 'cat' => $cat])));
 
 // ips repetidas entre equipos activos
@@ -141,12 +154,16 @@ require __DIR__ . '/inc/header.php';
 <div class="tabla-envoltura"><table class="tabla">
   <?php if ($vista === 'extensiones'): ?>
   <thead><tr><th>Ext.</th><th>Persona / lugar</th><th>Area</th><th>IP telefono</th><th>Equipo</th><?php if (es_admin()): ?><th class="no-imprimir"></th><?php endif; ?></tr></thead><tbody>
-  <?php foreach ($filas as $f): ?>
+  <?php foreach ($filas as $f): if (empty($f['id'])): ?>
+    <tr><td class="mono"><b><?= e($f['extension']) ?></b></td><td><a href="colaborador.php?id=<?= (int)$f['colab_id'] ?>"><?= e($f['responsable']) ?></a></td>
+      <td><?= e($f['area'] ?: '—') ?></td><td><span class="chip chip-microsip">MicroSIP</span></td><td class="tenue">en su PC</td>
+      <?php if (es_admin()): ?><td class="no-imprimir"><a class="btn btn-borde btn-sm" href="colaborador.php?id=<?= (int)$f['colab_id'] ?>&editar=1">✎ Editar</a></td><?php endif; ?></tr>
+  <?php else: ?>
     <tr><td class="mono"><b><?= e($f['extension']) ?></b></td><td><?= e($f['responsable'] ?: $f['ubicacion'] ?: $f['nombre']) ?></td>
       <td><?= e($f['area'] ?: '—') ?></td><td class="mono"><?= e($f['ip'] ?: '—') ?></td>
       <td class="mono"><a href="item.php?id=<?= $f['id'] ?>"><?= e($f['etiqueta']) ?></a></td>
       <?php if (es_admin()): ?><td class="no-imprimir"><a class="btn btn-borde btn-sm" href="item.php?id=<?= $f['id'] ?>&editar=1&volver=<?= $volver ?>">✎ Editar</a></td><?php endif; ?></tr>
-  <?php endforeach; ?>
+  <?php endif; endforeach; ?>
   <?php else: ?>
   <thead><tr><th>IP</th><th>Equipo</th><th>Tipo</th><th>Persona / ubicacion</th><th>Hostname</th><th>MAC</th><th>Ext.</th><?php if (es_admin()): ?><th class="no-imprimir"></th><?php endif; ?></tr></thead><tbody>
   <?php foreach ($mapa as $fila):

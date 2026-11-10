@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
         ir('colaborador.php?id=' . $id);
     }
     $d = [];
-    foreach (['nombre', 'cedula', 'cargo', 'email', 'telefono', 'sede_id', 'area_id', 'grupo'] as $k) {
+    foreach (['nombre', 'cedula', 'cargo', 'email', 'telefono', 'extension_pc', 'sede_id', 'area_id', 'grupo'] as $k) {
         $v = trim($_POST[$k] ?? '');
         $d[$k] = $v === '' ? null : $v;
     }
@@ -111,6 +111,7 @@ require __DIR__ . '/inc/header.php';
     <div class="campo" id="campo-grupo" style="display:none"><label>Grupo *</label><select name="grupo" id="grupo"></select></div>
     <div class="campo"><label>Correo</label><input type="email" name="email" value="<?= e($c['email'] ?? '') ?>"></div>
     <div class="campo"><label>Celular</label><input name="telefono" value="<?= e($c['telefono'] ?? '') ?>"></div>
+    <div class="campo"><label>Extensión en el PC (MicroSIP)</label><input name="extension_pc" inputmode="numeric" maxlength="10" value="<?= e($c['extension_pc'] ?? '') ?>"><small>Solo si no tiene teléfono físico y llama desde el computador</small></div>
     <div class="campo"><label>Bodega</label><select name="sede_id"><?= opciones(sedes(), $c['sede_id'] ?? '', 'nombre', 'Sin bodega') ?></select></div>
   </div>
   <p><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="<?= $id ? 'colaborador.php?id=' . $id : 'colaboradores.php' ?>">Cancelar</a></p>
@@ -177,6 +178,7 @@ require __DIR__ . '/inc/header.php';
       <div><small>Bodega</small><span><?= e($c['sede'] ?: '—') ?></span></div>
       <div><small>Correo</small><span><?= e($c['email'] ?: '—') ?></span></div>
       <div><small>Celular</small><span><?= e($c['telefono'] ?: '—') ?></span></div>
+      <?php if (!empty($c['extension_pc'])): ?><div><small>Extensión</small><span><?= e($c['extension_pc']) ?> <span class="chip chip-gris">MicroSIP</span></span></div><?php endif; ?>
     </div></div>
     <?php if (es_admin()): ?>
     <form method="post" class="tarjeta"><?= csrf_campo() ?><input type="hidden" name="accion" value="activo">

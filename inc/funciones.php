@@ -100,7 +100,7 @@ function campos_legibles() {
         'notas' => 'Notas', 'condicion' => 'Condición', 'fecha_compra' => 'Fecha de compra', 'valor' => 'Valor', 'categoria_id' => 'Categoría', 'sede_id' => 'Bodega', 'ubicacion' => 'Ubicación',
         'ip' => 'IP', 'mac' => 'MAC', 'hostname' => 'Hostname', 'extension' => 'Extensión', 'consumible' => 'Tóner', 'mant_meses' => 'Mantenimiento cada (meses)',
         'formato' => 'Formato', 'proximo_mant' => 'Próximo mantenimiento', 'cantidad' => 'Cantidad', 'clave_cifrada' => 'PIN / clave', 'estado' => 'Estado', 'responsable' => 'Responsable',
-        'cedula' => 'Cédula', 'cargo' => 'Cargo', 'area_id' => 'Área', 'area' => 'Área', 'grupo' => 'Grupo', 'email' => 'Correo', 'telefono' => 'Teléfono',
+        'cedula' => 'Cédula', 'cargo' => 'Cargo', 'area_id' => 'Área', 'area' => 'Área', 'grupo' => 'Grupo', 'email' => 'Correo', 'telefono' => 'Teléfono', 'extension_pc' => 'Extensión MicroSIP',
         'activo' => 'Activo', 'ssid' => 'Red (SSID)', 'banda' => 'Banda', 'seguridad' => 'Seguridad', 'aps' => 'Access points', 'rol' => 'Rol', 'permisos' => 'Módulos',
         'password_hash' => 'Clave', 'usuario' => 'Usuario de ingreso', 'prefijo' => 'Prefijo', 'grupos' => 'Grupos', 'colaborador_id' => 'Responsable', 'orden' => 'Orden en la lista', 'para_que' => 'Para qué sirve', 'url' => 'Link', 'version' => 'Versión'];
 }
