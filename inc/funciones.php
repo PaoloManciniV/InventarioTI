@@ -305,7 +305,10 @@ function chip_estado($estado) {
 // condicion fisica (mal estado, sin disco...): chip rojo pequeno al lado del estado
 function chip_condicion($c) {
     $c = trim((string)$c);
-    return $c === '' ? '' : ' <span class="chip chip-condicion" title="Condición física">' . e($c) . '</span>';
+    if ($c === '') return '';
+    // nuevo en verde, usado en gris, cualquier falla en rojo
+    $cl = preg_match('#^nuev#iu', $c) ? 'chip-cond-nuevo' : (preg_match('#^usad#iu', $c) ? 'chip-cond-usado' : 'chip-condicion');
+    return ' <span class="chip ' . $cl . '" title="Condición física">' . e($c) . '</span>';
 }
 
 function fecha_corta($f) { return $f ? date('d/m/Y', strtotime($f)) : ''; }
@@ -413,7 +416,9 @@ function aplicar_acta($acta_id) {
             registrar_movimiento($i['item_id'], 'entrega', 'Acta ' . $a['consecutivo'] . ' a ' . $a['colaborador'], $a['colaborador_id'], $acta_id);
         } else {
             guardar_ultimo_dueno($i['item_id']);
-            $st = db()->prepare("UPDATE items SET estado = 'disponible', colaborador_id = NULL, prestado_a = NULL, actualizado = NOW()
+            // lo que se entrego nuevo vuelve usado
+            $st = db()->prepare("UPDATE items SET estado = 'disponible', colaborador_id = NULL, prestado_a = NULL, actualizado = NOW(),
+                condicion = IF(condicion LIKE 'Nuev%', 'Usado', condicion)
                 WHERE id = ? AND (colaborador_id = ? OR prestado_a = ? OR colaborador_id IS NULL)");
             $st->execute([$i['item_id'], $a['colaborador_id'], $a['colaborador_id']]);
             quitar_ip_si_libre($i['item_id']);
