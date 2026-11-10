@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS `colaboradores` (
   `grupo` varchar(30) DEFAULT NULL,
   `email` varchar(150) DEFAULT NULL,
   `telefono` varchar(40) DEFAULT NULL,
+  `extension_pc` varchar(10) DEFAULT NULL,
   `sede_id` int(11) DEFAULT NULL,
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `inactivado_en` datetime DEFAULT NULL,
@@ -281,6 +282,5 @@ SELECT * FROM (SELECT 'Computador' n, 'PC' p, 6 m UNION ALL SELECT 'Portatil', '
   UNION ALL SELECT 'Impresora', 'IMP', NULL UNION ALL SELECT 'Red', 'RED', NULL UNION ALL SELECT 'Herramienta', 'HER', NULL
   UNION ALL SELECT 'Dotacion', 'DOT', NULL UNION ALL SELECT 'Llaves y accesos', 'LLA', NULL UNION ALL SELECT 'Mobiliario', 'MOB', NULL
   UNION ALL SELECT 'Otro', 'OTR', NULL UNION ALL SELECT 'Tablet', 'TAB', NULL UNION ALL SELECT 'Access point', 'AP', NULL
-  UNION ALL SELECT 'Servidor', 'SRV', NULL UNION ALL SELECT 'Servidor virtual', 'VM', NULL UNION ALL SELECT 'Video beam', 'VB', NULL
-  UNION ALL SELECT 'Extensión sin teléfono', 'EXT', NULL) t
+  UNION ALL SELECT 'Servidor', 'SRV', NULL UNION ALL SELECT 'Servidor virtual', 'VM', NULL UNION ALL SELECT 'Video beam', 'VB', NULL) t
 WHERE NOT EXISTS (SELECT 1 FROM categorias);
