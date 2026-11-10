@@ -6,7 +6,7 @@ if (!puede('inicio')) ir(primer_modulo() ?? 'logout.php');
 $pdo = db();
 $por_estado = $pdo->query('SELECT estado, COUNT(*) n FROM items GROUP BY estado')->fetchAll(PDO::FETCH_KEY_PAIR);
 $total = array_sum($por_estado);
-$por_cat = $pdo->query("SELECT COALESCE(c.nombre,'Sin categoria') nombre, COUNT(*) n,
+$por_cat = $pdo->query("SELECT MAX(c.id) cat_id, COALESCE(c.nombre,'Sin categoria') nombre, COUNT(*) n,
     SUM(i.estado IN ('asignado', 'instalado', 'prestado')) asignados FROM items i LEFT JOIN categorias c ON c.id = i.categoria_id
     WHERE i.estado NOT IN ('baja', 'cedido') GROUP BY nombre ORDER BY n DESC")->fetchAll();
 $pendientes = $pdo->query("SELECT a.id, a.consecutivo, a.tipo, a.fecha, c.nombre FROM actas a
@@ -38,7 +38,7 @@ require __DIR__ . '/inc/header.php';
       <?php if (!$por_cat): ?><div class="vacio">Aun no hay items. <a href="importar.php">Importa el Excel</a> o crea uno nuevo.</div><?php else: ?>
       <table class="tabla"><thead><tr><th>Categoria</th><th>Total</th><th>Asignados</th><th></th></tr></thead><tbody>
       <?php foreach ($por_cat as $c): $pct = $c['n'] ? round($c['asignados'] * 100 / $c['n']) : 0; ?>
-        <tr><td><?= e($c['nombre']) ?></td><td><?= $c['n'] ?></td><td><?= $c['asignados'] ?></td>
+        <tr class="fila-link" onclick="location='items.php?cat=<?= (int)$c['cat_id'] ?>'"><td><a href="items.php?cat=<?= (int)$c['cat_id'] ?>"><?= e($c['nombre']) ?></a></td><td><?= $c['n'] ?></td><td><?= $c['asignados'] ?></td>
           <td style="width:40%"><div style="background:#222;border-radius:2px;height:6px"><div style="width:<?= $pct ?>%;background:var(--cat);height:6px;border-radius:2px"></div></div></td></tr>
       <?php endforeach; ?>
       </tbody></table>
@@ -48,9 +48,13 @@ require __DIR__ . '/inc/header.php';
       <h2>Ultimos movimientos</h2>
       <?php if (!$movs): ?><div class="vacio">Sin movimientos todavia</div><?php else: ?>
       <ul class="historial">
-      <?php foreach ($movs as $m): ?>
-        <li><time><?= fecha_hora($m['fecha']) ?></time><div><a href="item.php?id=<?= $m['item_id'] ?>" class="mono"><?= e($m['etiqueta']) ?></a> <?= e($m['detalle']) ?>
-          <small><?= e($m['usuario']) ?></small></div></li>
+      <?php foreach ($movs as $m):
+        // a donde lleva: el acta si salio de una, el mapa de ips si fue una ip, si no la hoja de vida del equipo
+        if ($m['acta_id']) $ir = 'acta.php?id=' . (int)$m['acta_id'];
+        elseif ($m['tipo'] === 'ip' && preg_match('#192\.168\.0\.(\d+)#', (string)$m['detalle'], $ipm)) $ir = 'red.php#ip-' . $ipm[1];
+        else $ir = 'item.php?id=' . (int)$m['item_id']; ?>
+        <li class="mov-link"><a href="<?= e($ir) ?>"><time><?= fecha_hora($m['fecha']) ?></time><div><span class="mono"><?= e($m['etiqueta']) ?></span> <?= e($m['detalle']) ?>
+          <small><?= e($m['usuario']) ?></small></div></a></li>
       <?php endforeach; ?>
       </ul>
       <?php endif; ?>

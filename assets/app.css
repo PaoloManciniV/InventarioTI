@@ -454,3 +454,13 @@ tr.fila-servidor td:first-child { box-shadow: inset 4px 0 0 #b052ff; }
 .asignar-ip .asignar-cab { margin-bottom: 8px; }
 .tabla tr.destello td { animation: destello 2.4s ease-out; }
 @keyframes destello { 0% { background: rgba(245, 196, 0, .45); } 100% { background: transparent; } }
+
+/* vista general: movimientos y categorias con clic */
+.historial li.mov-link { padding: 0; }
+.historial li.mov-link > a { display: flex; gap: 10px; width: 100%; padding: 8px 6px; color: var(--texto); text-decoration: none; border-radius: 4px; }
+.historial li.mov-link > a:hover { background: rgba(245, 196, 0, .10); }
+.historial li.mov-link > a .mono { color: var(--cat, #f5c400); }
+.historial li.mov-link > a:hover .mono { text-decoration: underline; }
+.tabla tr.fila-link { cursor: pointer; }
+.tabla tr.fila-link a { color: inherit; text-decoration: none; }
+.tabla tr.fila-link:hover a { text-decoration: underline; }
