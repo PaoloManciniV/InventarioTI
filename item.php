@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
         $fecha = preg_match('#^\d{4}-\d{2}-\d{2}$#', $_POST['fecha'] ?? '') && $_POST['fecha'] <= date('Y-m-d') ? $_POST['fecha'] : date('Y-m-d');
         $antes_id = (int)($item['colaborador_id'] ?? 0);
         $nombre = function ($cid) { if (!$cid) return 'Sistemas'; $s = db()->prepare('SELECT nombre FROM colaboradores WHERE id = ?'); $s->execute([$cid]); return $s->fetchColumn() ?: '¿?'; };
-        if (!in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado'], true)) flash('Con el equipo ' . estados_item()[$item['estado']] . ' no se cambia el responsable aquí', 'error');
+        if (!in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)) flash('Con el equipo ' . estados_item()[$item['estado']] . ' no se cambia el responsable aquí', 'error');
         elseif ($motivo === '') flash('Escribe el motivo del cambio', 'error');
         elseif ($nuevo === $antes_id) flash('Ese ya es el responsable', 'error');
         elseif ($nuevo && !$nombre($nuevo)) flash('Colaborador no válido', 'error');
@@ -57,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             $de = $nombre($antes_id);
             $a = $nombre($nuevo);
             if ($antes_id) guardar_ultimo_dueno($id);
-            $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado'], true) ? 'disponible' : $item['estado']);
+            // si estaba por ubicar (extraviado) y aparecio, queda asignado a quien lo tiene o disponible en sistemas
+            $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado', 'extraviado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado', 'extraviado'], true) ? 'disponible' : $item['estado']);
             db()->prepare('UPDATE items SET colaborador_id = ?, estado = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')->execute([$nuevo ?: null, $estado, $id]);
             if (!$nuevo) quitar_ip_si_libre($id);
             db()->prepare('INSERT INTO movimientos (item_id, tipo, colaborador_id, usuario_id, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?)')
@@ -274,7 +275,7 @@ require __DIR__ . '/inc/header.php';
   </div>
   <div>
     <?php if (es_admin()): ?>
-    <?php if (in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado'], true)):
+    <?php if (in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)):
       $gente = db()->query('SELECT id, nombre, area FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll(); ?>
     <form method="post" class="tarjeta">
       <?= csrf_campo() ?><input type="hidden" name="accion" value="propietario">
