@@ -8,7 +8,7 @@ $por_estado = $pdo->query('SELECT estado, COUNT(*) n FROM items GROUP BY estado'
 $total = array_sum($por_estado);
 $por_cat = $pdo->query("SELECT MAX(c.id) cat_id, COALESCE(c.nombre,'Sin categoria') nombre, COUNT(*) n,
     SUM(i.estado IN ('asignado', 'instalado', 'prestado')) asignados FROM items i LEFT JOIN categorias c ON c.id = i.categoria_id
-    WHERE i.estado NOT IN ('baja', 'cedido') GROUP BY nombre ORDER BY n DESC")->fetchAll();
+    WHERE i.estado NOT IN ('baja', 'cedido') GROUP BY nombre ORDER BY " . orden_categorias("MAX(c.nombre)"))->fetchAll();
 $pendientes = $pdo->query("SELECT a.id, a.consecutivo, a.tipo, a.fecha, c.nombre FROM actas a
     LEFT JOIN colaboradores c ON c.id = a.colaborador_id WHERE a.estado = 'pendiente' ORDER BY a.id DESC LIMIT 10")->fetchAll();
 $movs = $pdo->query('SELECT m.*, i.etiqueta, i.nombre item, u.nombre usuario FROM movimientos m

@@ -274,7 +274,14 @@ function sedes($solo_activas = true) {
 }
 
 function categorias($solo_activas = true) {
-    return db()->query('SELECT * FROM categorias' . ($solo_activas ? ' WHERE activo = 1' : '') . ' ORDER BY nombre')->fetchAll();
+    return db()->query('SELECT * FROM categorias' . ($solo_activas ? ' WHERE activo = 1' : '') . ' ORDER BY ' . orden_categorias())->fetchAll();
+}
+
+// orden en que se muestran las categorias (filtros, listas): lo mas usado primero, el resto por nombre
+function orden_categorias($col = 'nombre') {
+    $orden = ['Computador', 'Portatil', 'Telefono IP', 'Impresora', 'Periferico', 'Tablet', 'Celular', 'Access point', 'Video beam'];
+    $lista = implode(', ', array_map(fn($n) => db()->quote($n), array_reverse($orden)));
+    return "FIELD($col, $lista) DESC, $col";
 }
 
 function opciones($filas, $sel, $campo = 'nombre', $vacio = null) {
@@ -834,7 +841,7 @@ function linea_tiempo_item($id) {
     $st->execute([$id]);
     foreach ($st->fetchAll() as $m) {
         if (mov_repetido($m['tipo'])) continue;
-        $clase = in_array($m['tipo'], ['danado', 'baja', 'extraviado'], true) ? 'alerta' : ($m['tipo'] === 'cambio_dueno' ? 'entrega' : 'sistema');
+        $clase = in_array($m['tipo'], ['danado', 'baja', 'extraviado'], true) ? 'alerta' : ($m['tipo'] === 'cambio_dueno' ? 'entrega' : ($m['tipo'] === 'reparacion' ? 'reparacion' : 'sistema'));
         $ev[] = evento(substr($m['fecha'], 0, 10), $clase, $m['detalle'], $m['usuario'] ? 'Por ' . $m['usuario'] : '');
     }
     usort($ev, fn($a, $b) => strcmp($b['fecha'], $a['fecha']));

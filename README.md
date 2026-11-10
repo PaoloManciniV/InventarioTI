@@ -17,7 +17,7 @@ PHP sin framework, JavaScript puro y MySQL/MariaDB. Sin Composer ni build: se su
 | Actas y firmas | Entregas, préstamos y devoluciones. Se firman con el dedo en el celular, por enlace o por correo. La copia firmada le llega al correo a la persona y a sistemas |
 | Mantenimientos | Preventivos cada N meses y correctivos, con firma del usuario |
 | Red y extensiones | Mapa completo de IPs (.1 a .255, libres en verde, repetidas en rojo), directorio de extensiones y servidores |
-| Impresoras | Impresoras por piso y cambios de tóner |
+| Impresoras | Impresoras por piso, cambios de tóner y reparaciones o revisiones por fuera (proveedor, cotización, costo final y factura) |
 | Informe anual | Conteo de equipos por tipo para contabilidad, exportable a Excel |
 | Herramientas | Programas, portales, configuraciones y archivos de descarga. Incluye el generador de firmas de correo (PNG con QR vCard) y el de stickers de ubicaciones para impresora Zebra (Code 128 / ZPL), los dos en la web |
 | Contactos de soporte y compras | Proveedores, soporte y escalamiento, con llamada y WhatsApp |

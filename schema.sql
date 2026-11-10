@@ -241,6 +241,27 @@ CREATE TABLE IF NOT EXISTS `movimientos` (
   PRIMARY KEY (`id`),
   KEY `idx_item` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE IF NOT EXISTS `reparaciones` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) NOT NULL,
+  `tipo` varchar(20) NOT NULL DEFAULT 'reparacion',
+  `fecha_envio` date NOT NULL,
+  `proveedor` varchar(150) NOT NULL,
+  `falla` text DEFAULT NULL,
+  `cotizacion_valor` decimal(14,2) DEFAULT NULL,
+  `cotizacion_archivo` varchar(255) DEFAULT NULL,
+  `estado` varchar(20) NOT NULL DEFAULT 'enviada',
+  `estado_antes` varchar(20) DEFAULT NULL,
+  `fecha_regreso` date DEFAULT NULL,
+  `trabajo` text DEFAULT NULL,
+  `costo_final` decimal(14,2) DEFAULT NULL,
+  `factura_archivo` varchar(255) DEFAULT NULL,
+  `creado_por` int(11) DEFAULT NULL,
+  `creado` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_item` (`item_id`),
+  KEY `idx_estado` (`estado`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS `sedes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(100) NOT NULL,
