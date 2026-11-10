@@ -11,12 +11,12 @@ PHP sin framework, JavaScript puro y MySQL/MariaDB. Sin Composer ni build: se su
 
 | Módulo | Para qué |
 | --- | --- |
-| Vista general | Resumen: actas pendientes, mantenimientos vencidos, equipos por estado |
-| Inventario | Equipos e items con estado (disponible, asignado, prestado, cedido, dañado…), condición física, historial y "Ver cambios" |
-| Colaboradores | Quién tiene qué, actas de cada persona y "recoger todo" para retiros |
-| Actas y firmas | Entregas, préstamos y devoluciones. Se firman con el dedo en el celular, por enlace o por correo. La copia firmada le llega al correo a la persona y a sistemas |
+| Vista general | Resumen: equipos por estado y por categoría, actas pendientes y últimos movimientos. Todo es clic: cada movimiento lleva al acta, a la IP o a la hoja de vida del equipo |
+| Inventario | Equipos e items con estado (disponible, asignado, prestado, cedido, dañado, por ubicar…), colores por tipo en los disponibles y una nota visible (nuevo, usado, pantalla rota…) que se pone, edita o quita desde la misma lista. Cada equipo tiene hoja de vida, "quién lo ha tenido y cuánto duró" y "Ver cambios". El responsable se puede cambiar sin acta (queda en el historial) y los combos (teclado + mouse) se separan para entregar solo una parte |
+| Colaboradores | Quién tiene qué, actas de cada persona, extensión MicroSIP si llama desde el PC y "recoger todo" para retiros |
+| Actas y firmas | Entregas, préstamos y devoluciones. Se firman con el dedo en el celular, por enlace o por correo. La copia firmada le llega al correo a la persona y a sistemas. En un préstamo todo queda en el inventario, por mínimo que sea |
 | Mantenimientos | Preventivos cada N meses y correctivos, con firma del usuario |
-| Red y extensiones | Mapa completo de IPs (.1 a .255, libres en verde, repetidas en rojo), directorio de extensiones y servidores |
+| Red y extensiones | Mapa completo de IPs (.1 a .255, libres en verde, reservadas en amarillo, repetidas en rojo). Una IP libre se asigna con doble clic. Directorio de extensiones (teléfono IP o MicroSIP) y servidores resaltados |
 | Impresoras | Impresoras por piso, cambios de tóner y reparaciones o revisiones por fuera (proveedor, cotización, costo final y factura) |
 | Informe anual | Conteo de equipos por tipo para contabilidad, exportable a Excel |
 | Herramientas | Programas, portales, configuraciones y archivos de descarga. Incluye el generador de firmas de correo (PNG con QR vCard) y el de stickers de ubicaciones para impresora Zebra (Code 128 / ZPL), los dos en la web |
