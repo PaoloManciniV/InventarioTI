@@ -447,3 +447,10 @@ tr.fila-servidor td:first-child { box-shadow: inset 4px 0 0 #b052ff; }
 .tabla tr.ip-reservada td:first-child { box-shadow: inset 4px 0 0 #f5c400; }
 .tabla tr.ip-fija td { color: var(--tenue); font-style: italic; }
 @media print { .tabla tr.ip-libre td { background: #e8f7ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* asignar ip libre desde el mapa */
+.tabla tr.ip-libre { cursor: pointer; }
+.tabla tr.fila-asignar td { background: var(--tarjeta, #fff); box-shadow: inset 4px 0 0 #16a34a; padding: 12px 14px; }
+.asignar-ip .asignar-cab { margin-bottom: 8px; }
+.tabla tr.destello td { animation: destello 2.4s ease-out; }
+@keyframes destello { 0% { background: rgba(245, 196, 0, .45); } 100% { background: transparent; } }

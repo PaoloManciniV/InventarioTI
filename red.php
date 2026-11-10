@@ -3,6 +3,33 @@
 require __DIR__ . '/config.php';
 requiere_modulo('red');
 
+// asignar una ip libre desde el mapa: se le pone al equipo escogido y, si tenia otra, esa queda libre
+$no_ip = ['disponible', 'baja', 'extraviado', 'cedido'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin() && ($_POST['accion'] ?? '') === 'asignar_ip') {
+    verificar_csrf();
+    $ip = trim($_POST['ip'] ?? '');
+    $iid = (int)($_POST['item_id'] ?? 0);
+    $st = db()->prepare('SELECT i.*, c.nombre persona FROM items i LEFT JOIN colaboradores c ON c.id = i.colaborador_id WHERE i.id = ?');
+    $st->execute([$iid]);
+    $it = $st->fetch();
+    $ocupada = db()->prepare("SELECT etiqueta FROM items WHERE ip = ? AND estado <> 'baja' AND id <> ? LIMIT 1");
+    $ocupada->execute([$ip, $iid]);
+    $quien = $ocupada->fetchColumn();
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) flash('IP no válida', 'error');
+    elseif (!$it) flash('Escoge a qué equipo se la vas a asignar', 'error');
+    elseif (in_array($it['estado'], $no_ip, true)) flash($it['etiqueta'] . ' está ' . strtolower(estados_item()[$it['estado']]) . ': no lleva IP', 'error');
+    elseif ($quien) flash('La ' . $ip . ' ya la tiene ' . $quien, 'error');
+    else {
+        $antes = $it['ip'];
+        db()->prepare('UPDATE items SET ip = ?, actualizado = NOW() WHERE id = ?')->execute([$ip, $iid]);
+        auditar('items', $iid, ['ip' => $antes], ['ip' => $ip], 'Asignada desde el mapa de IPs');
+        registrar_movimiento($iid, 'ip', 'IP asignada: ' . $ip . ($antes ? ' (antes ' . $antes . ', esa queda libre)' : ''));
+        flash($ip . ' asignada a ' . $it['etiqueta'] . ($it['persona'] ? ' (' . $it['persona'] . ')' : '') . ($antes ? '. La ' . $antes . ' quedó libre' : ''));
+    }
+    $n = substr(strrchr($ip, '.'), 1);
+    ir('red.php' . (ctype_digit((string)$n) ? '#ip-' . $n : ''));
+}
+
 $vista = $_GET['vista'] ?? 'ips';
 $q = trim($_GET['q'] ?? '');
 $cat = $_GET['cat'] ?? '';
@@ -124,8 +151,8 @@ require __DIR__ . '/inc/header.php';
   <thead><tr><th>IP</th><th>Equipo</th><th>Tipo</th><th>Persona / ubicacion</th><th>Hostname</th><th>MAC</th><th>Ext.</th><?php if (es_admin()): ?><th class="no-imprimir"></th><?php endif; ?></tr></thead><tbody>
   <?php foreach ($mapa as $fila):
     if ($fila[0] === 'libre'): ?>
-    <tr class="ip-libre"><td class="mono"><b><?= e($fila[1]) ?></b></td><td colspan="6"><b>LIBRE</b> <span>· lista para ser asignada</span></td>
-      <?php if (es_admin()): ?><td class="no-imprimir"><button type="button" class="btn btn-borde btn-sm" data-copiar="<?= e($fila[1]) ?>">Copiar IP</button></td><?php endif; ?></tr>
+    <tr class="ip-libre" id="ip-<?= e(substr(strrchr($fila[1], '.'), 1)) ?>" data-ip="<?= e($fila[1]) ?>"<?= es_admin() ? ' title="Doble clic para asignarla"' : '' ?>><td class="mono"><b><?= e($fila[1]) ?></b></td><td colspan="6"><b>LIBRE</b> <span>· lista para ser asignada<?= es_admin() ? ' · doble clic para asignarla' : '' ?></span></td>
+      <?php if (es_admin()): ?><td class="no-imprimir" style="white-space:nowrap"><button type="button" class="btn btn-primario btn-sm" data-asignar>Asignar</button> <button type="button" class="btn-copiar-mini" data-copiar="<?= e($fila[1]) ?>" title="Copiar IP">⧉</button></td><?php endif; ?></tr>
     <?php continue; elseif ($fila[0] === 'reservada'): ?>
     <tr class="ip-reservada"><td class="mono"><b><?= e($fila[1]) ?></b></td><td colspan="6"><b>RESERVADA</b> · para <?= e($fila[2]['nombre']) ?> <span class="mono">(<?= e($fila[2]['etiqueta']) ?>)</span>, aún no se instala</td><?php if (es_admin()): ?><td class="no-imprimir"></td><?php endif; ?></tr>
     <?php continue; elseif ($fila[0] === 'fija'): ?>
@@ -134,7 +161,7 @@ require __DIR__ . '/inc/header.php';
     <tr><td colspan="8" style="padding-top:18px"><b><?= e($fila[1]) ?></b></td></tr>
     <?php continue; endif;
     $f = $fila[1]; $rep = in_array($f['ip'], $repetidas, true); $srv = in_array($f['categoria'], ['Servidor', 'Servidor virtual'], true); ?>
-    <tr class=""<?= trim(($rep ? 'ip-conflicto ' : '') . ($srv ? 'fila-servidor' : '')) ?>"><td class="mono"><b><?= e($f['ip']) ?></b><?= $rep ? ' <span class="chip chip-danado">repetida</span>' : '' ?></td>
+    <tr<?= strpos($f['ip'], $red_base . '.') === 0 ? ' id="ip-' . e(substr(strrchr($f['ip'], '.'), 1)) . '"' : '' ?> class="<?= trim(($rep ? 'ip-conflicto ' : '') . ($srv ? 'fila-servidor' : '')) ?>"><td class="mono"><b><?= e($f['ip']) ?></b><?= $rep ? ' <span class="chip chip-danado">repetida</span>' : '' ?></td>
       <td><a class="mono" href="item.php?id=<?= $f['id'] ?>"><?= e($f['etiqueta']) ?></a><small><?= e($f['nombre']) ?></small>
         <?php if ($srv && $f['especificaciones']): ?><small class="srv-desc"><?= e($f['especificaciones']) ?></small><?php endif; ?></td>
       <td><?= $srv ? '<span class="chip chip-servidor">' . e($f['categoria']) . '</span>' : e($f['categoria']) ?></td><td><?= e($f['responsable'] ?: ($f['ubicacion'] ?: '—')) ?></td>
@@ -145,5 +172,47 @@ require __DIR__ . '/inc/header.php';
   <?php if (!$filas): ?><tr><td colspan="8" class="vacio">Sin registros</td></tr><?php endif; ?>
   </tbody>
 </table></div>
+<?php if ($completo && es_admin()):
+  // equipos que pueden llevar ip: en uso (no disponibles ni de baja); primero los que no tienen
+  $cand = db()->query("SELECT i.id, i.etiqueta, i.nombre, i.ip, i.estado, cat.nombre categoria, COALESCE(c.nombre, p.nombre, i.ubicacion) quien FROM items i
+      LEFT JOIN categorias cat ON cat.id = i.categoria_id LEFT JOIN colaboradores c ON c.id = i.colaborador_id LEFT JOIN colaboradores p ON p.id = i.prestado_a
+      WHERE i.estado NOT IN ('" . implode("','", $no_ip) . "')
+        AND (cat.nombre IN ('Computador', 'Portatil', 'Telefono IP', 'Impresora', 'Access point', 'Servidor', 'Servidor virtual', 'Video beam', 'Red', 'Tablet') OR COALESCE(i.ip, '') <> '')
+      ORDER BY COALESCE(i.ip, '') <> '', cat.nombre, i.etiqueta")->fetchAll(); ?>
+<div id="asignar-ip" class="asignar-ip" hidden>
+  <form method="post"><?= csrf_campo() ?><input type="hidden" name="accion" value="asignar_ip"><input type="hidden" name="ip">
+    <div class="asignar-cab"><b>Asignar la <span class="mono" data-ip-txt></span></b> <small class="tenue">a un equipo en uso (los disponibles no llevan IP)</small></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div class="campo" style="flex:1;min-width:280px;margin:0"><select name="item_id" data-buscar required>
+        <option value="">Escribe etiqueta, equipo o persona…</option>
+        <?php foreach ($cand as $c): ?><option value="<?= $c['id'] ?>"><?= e($c['etiqueta'] . ' · ' . $c['nombre'] . ($c['quien'] ? ' · ' . $c['quien'] : '') . ($c['ip'] ? ' — tiene ' . $c['ip'] . ', se cambia' : ' — sin IP')) ?></option><?php endforeach; ?>
+      </select></div>
+      <button class="btn btn-primario">Guardar</button><button type="button" class="btn btn-borde" data-cerrar>Cancelar</button>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var panel = document.getElementById('asignar-ip'), fila = null;
+  function cerrar() { if (fila) { fila.remove(); fila = null; } panel.hidden = true; document.body.appendChild(panel); }
+  function abrir(tr) {
+    cerrar();
+    fila = document.createElement('tr'); fila.className = 'fila-asignar';
+    var td = document.createElement('td'); td.colSpan = 8; fila.appendChild(td);
+    tr.parentNode.insertBefore(fila, tr.nextSibling); td.appendChild(panel); panel.hidden = false;
+    panel.querySelector('input[name=ip]').value = tr.dataset.ip;
+    panel.querySelector('[data-ip-txt]').textContent = tr.dataset.ip;
+    var campo = panel.querySelector('.combo input') || panel.querySelector('select'); if (campo) campo.focus();
+  }
+  document.querySelectorAll('tr.ip-libre').forEach(function (tr) {
+    tr.addEventListener('dblclick', function () { abrir(tr); });
+    var b = tr.querySelector('[data-asignar]'); if (b) b.addEventListener('click', function (e) { e.stopPropagation(); abrir(tr); });
+  });
+  panel.querySelector('[data-cerrar]').addEventListener('click', cerrar);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && fila) cerrar(); });
+  if (location.hash) { var t = document.querySelector(location.hash); if (t) { t.scrollIntoView({ block: 'center' }); t.classList.add('destello'); } }
+})();
+</script>
+<?php endif; ?>
 <?php endif; ?>
 <?php require __DIR__ . '/inc/footer.php';
