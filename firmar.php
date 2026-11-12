@@ -32,7 +32,7 @@ if ($a && $a['estado'] === 'pendiente' && !$vencido && $_SERVER['REQUEST_METHOD'
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=28">
+<link rel="stylesheet" href="assets/app.css?v=29">
 </head>
 <body>
 <div class="publico">
@@ -65,6 +65,6 @@ if ($a && $a['estado'] === 'pendiente' && !$vencido && $_SERVER['REQUEST_METHOD'
     </form>
   <?php endif; ?>
 </div>
-<script src="assets/app.js?v=8"></script>
+<script src="assets/app.js?v=9"></script>
 </body>
 </html>

@@ -102,9 +102,12 @@ require __DIR__ . '/inc/header.php';
   <div class="acciones"><?= boton_cambios($hist, array_column($imps, 'etiqueta', 'id')) ?><?php if (es_admin()): ?><a class="btn btn-primario" href="item.php">+ Nueva impresora</a><?php endif; ?></div>
 </div>
 
+<?php $cerrar = ($sel && ($_GET['volver'] ?? '') === 'item') ? 'item.php?id=' . $sel['id'] : 'impresoras.php'; ?>
 <?php if ($sel && es_admin()): ?>
-<form method="post" action="impresoras.php?toner=<?= $sel['id'] ?>" class="tarjeta form-destacado" id="formulario"><input type="hidden" name="volver" value="<?= e($_GET['volver'] ?? '') ?>">
+<div class="modal-fondo" data-cerrar="<?= e($cerrar) ?>">
+<form method="post" action="impresoras.php?toner=<?= $sel['id'] ?>" class="tarjeta modal-caja" role="dialog" aria-modal="true"><input type="hidden" name="volver" value="<?= e($_GET['volver'] ?? '') ?>">
   <?= csrf_campo() ?>
+  <a class="modal-x" href="<?= e($cerrar) ?>" aria-label="Cerrar">×</a>
   <h2>Cambio de toner · <?= e($sel['etiqueta'] . ' ' . $sel['modelo']) ?></h2>
   <div class="rejilla">
     <div class="campo"><label>Fecha</label><input type="date" name="fecha" required value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>"></div>
@@ -112,13 +115,16 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Contador de paginas</label><input name="contador" inputmode="numeric"></div>
     <div class="campo"><label>Notas</label><input name="notas"></div>
   </div>
-  <p><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="impresoras.php">Cancelar</a></p>
+  <p><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="<?= e($cerrar) ?>">Cancelar</a></p>
 </form>
+</div>
 <?php endif; ?>
 
 <?php if ($sel_rep && es_admin()): ?>
-<form method="post" action="impresoras.php?reparar=<?= $sel_rep['id'] ?>" class="tarjeta form-destacado" id="formulario" enctype="multipart/form-data">
+<div class="modal-fondo" data-cerrar="impresoras.php">
+<form method="post" action="impresoras.php?reparar=<?= $sel_rep['id'] ?>" class="tarjeta modal-caja" role="dialog" aria-modal="true" enctype="multipart/form-data">
   <?= csrf_campo() ?><input type="hidden" name="accion" value="reparar">
+  <a class="modal-x" href="<?= e($cerrar) ?>" aria-label="Cerrar">×</a>
   <h2>Mandar a reparar · <?= e($sel_rep['etiqueta'] . ' ' . $sel_rep['modelo']) ?></h2>
   <div class="rejilla">
     <div class="campo"><label>Fecha en que sale</label><input type="date" name="fecha" required value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>"></div>
@@ -128,14 +134,17 @@ require __DIR__ . '/inc/header.php';
     <div class="campo" style="grid-column:1/-1"><label>¿Qué tiene?</label><textarea name="falla" rows="2" required placeholder="Atasca el papel, raya las hojas, no prende…"></textarea></div>
     <div class="campo" style="grid-column:1/-1"><label>Cotización (PDF o foto, opcional)</label><input type="file" name="cotizacion" accept="application/pdf,image/*"></div>
   </div>
-  <p style="margin-bottom:0"><button class="btn btn-primario">Mandar a reparar</button> <a class="btn btn-borde" href="impresoras.php">Cancelar</a></p>
+  <p style="margin-bottom:0"><button class="btn btn-primario">Mandar a reparar</button> <a class="btn btn-borde" href="<?= e($cerrar) ?>">Cancelar</a></p>
   <p class="tenue" style="margin-bottom:0">La impresora queda en “Mantenimiento” hasta que registres el regreso.</p>
 </form>
+</div>
 <?php endif; ?>
 
 <?php if ($sel_reg && es_admin()): ?>
-<form method="post" action="impresoras.php?regreso=<?= $sel_reg['id'] ?>" class="tarjeta form-destacado" id="formulario" enctype="multipart/form-data">
+<div class="modal-fondo" data-cerrar="impresoras.php">
+<form method="post" action="impresoras.php?regreso=<?= $sel_reg['id'] ?>" class="tarjeta modal-caja" role="dialog" aria-modal="true" enctype="multipart/form-data">
   <?= csrf_campo() ?><input type="hidden" name="accion" value="regreso">
+  <a class="modal-x" href="<?= e($cerrar) ?>" aria-label="Cerrar">×</a>
   <h2>Regreso de <?= e($sel_reg['etiqueta']) ?> · <?= e($sel_reg['proveedor']) ?></h2>
   <p class="tenue" style="margin-top:-6px">Salió el <?= fecha_corta($sel_reg['fecha_envio']) ?>: <?= e($sel_reg['falla']) ?><?= $sel_reg['cotizacion_valor'] !== null ? ' · cotización ' . pesos($sel_reg['cotizacion_valor']) : '' ?></p>
   <div class="rejilla">
@@ -145,8 +154,9 @@ require __DIR__ . '/inc/header.php';
     <div class="campo" style="grid-column:1/-1"><label>¿Qué le hicieron?</label><textarea name="trabajo" rows="2" placeholder="Cambio de fusor, limpieza, rodillos…"></textarea></div>
     <div class="campo" style="grid-column:1/-1"><label>Factura (PDF o foto, opcional)</label><input type="file" name="factura" accept="application/pdf,image/*"></div>
   </div>
-  <p style="margin-bottom:0"><button class="btn btn-primario">Guardar regreso</button> <a class="btn btn-borde" href="impresoras.php">Cancelar</a></p>
+  <p style="margin-bottom:0"><button class="btn btn-primario">Guardar regreso</button> <a class="btn btn-borde" href="<?= e($cerrar) ?>">Cancelar</a></p>
 </form>
+</div>
 <?php endif; ?>
 
 <div class="dos-col">
@@ -159,9 +169,9 @@ require __DIR__ . '/inc/header.php';
         <td class="mono"><?= e($i['consumible'] ?: '—') ?></td>
         <td><?= fecha_corta($i['ultimo_cambio']) ?: '—' ?><?= $i['cambios_anio'] ? '<small>' . $i['cambios_anio'] . ' en 12 meses</small>' : '' ?></td>
         <td style="white-space:nowrap"><?php if (es_admin()): ?><a class="btn btn-borde btn-sm" href="item.php?id=<?= $i['id'] ?>&editar=1&volver=impresoras.php" title="Editar ubicación, IP, tóner, modelo...">✎ Editar</a>
-          <a class="btn btn-borde btn-sm" href="?toner=<?= $i['id'] ?>#formulario">Cambio de toner</a>
-          <?php if (isset($en_rep[$i['id']])): ?><a class="btn btn-primario btn-sm" href="?regreso=<?= $en_rep[$i['id']]['id'] ?>#formulario">Registrar regreso</a>
-          <?php else: ?><a class="btn btn-borde btn-sm" href="?reparar=<?= $i['id'] ?>#formulario">Mandar a reparar</a><?php endif; ?><?php endif; ?></td></tr>
+          <a class="btn btn-borde btn-sm" href="?toner=<?= $i['id'] ?>">Cambio de toner</a>
+          <?php if (isset($en_rep[$i['id']])): ?><a class="btn btn-primario btn-sm" href="?regreso=<?= $en_rep[$i['id']]['id'] ?>">Registrar regreso</a>
+          <?php else: ?><a class="btn btn-borde btn-sm" href="?reparar=<?= $i['id'] ?>">Mandar a reparar</a><?php endif; ?><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
   <div class="tarjeta">
@@ -187,7 +197,7 @@ require __DIR__ . '/inc/header.php';
         <td><?= pesos($r['cotizacion_valor']) ?><?= $r['cotizacion_archivo'] ? '<small><a href="' . e(url_archivo($r['cotizacion_archivo'])) . '" target="_blank">Ver cotización</a></small>' : '' ?></td>
         <td><?= $r['estado'] === 'enviada' ? '<span class="chip chip-mantenimiento">En reparación</span>' : fecha_corta($r['fecha_regreso']) . '<small>' . ($r['estado'] === 'sin_arreglo' ? '<span class="chip chip-danado">Sin arreglo</span>' : 'Reparada') . '</small>' ?></td>
         <td><b><?= pesos($r['costo_final']) ?></b><?= $r['factura_archivo'] ? '<small><a href="' . e(url_archivo($r['factura_archivo'])) . '" target="_blank">Ver factura</a></small>' : '' ?></td>
-        <td><?php if ($r['estado'] === 'enviada' && es_admin()): ?><a class="btn btn-borde btn-sm" href="?regreso=<?= $r['id'] ?>#formulario">Registrar regreso</a><?php endif; ?></td></tr>
+        <td><?php if ($r['estado'] === 'enviada' && es_admin()): ?><a class="btn btn-borde btn-sm" href="?regreso=<?= $r['id'] ?>">Registrar regreso</a><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
   <?php endif; ?>

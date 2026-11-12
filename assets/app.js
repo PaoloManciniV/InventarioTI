@@ -276,3 +276,14 @@ document.addEventListener('DOMContentLoaded', function () {
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); guardar(b, inp.value.trim(), pop.querySelector('[data-g]')); } if (e.key === 'Escape') cerrar(); });
   }, true);
 })();
+
+/* ventana emergente (impresoras: toner, reparar, regreso): Esc o clic afuera la cierra */
+(function () {
+  var m = document.querySelector('.modal-fondo');
+  if (!m) return;
+  var ir = function () { location.href = m.dataset.cerrar || location.pathname; };
+  m.addEventListener('mousedown', function (e) { if (e.target === m) ir(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ir(); });
+  var f = m.querySelector('input:not([type=hidden]):not([type=date]), textarea, select');
+  if (f) f.focus();
+})();
