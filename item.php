@@ -263,7 +263,7 @@ require __DIR__ . '/inc/header.php';
       <div class="cabecera" style="margin-bottom:6px"><h2 style="margin:0">Hoja de vida</h2>
         <?php if (es_admin()): ?><div class="acciones">
           <a class="btn btn-borde btn-sm" href="mantenimiento.php?item=<?= $id ?>">+ Mantenimiento / reparación</a>
-          <?php if ($item['consumible']): ?><a class="btn btn-borde btn-sm" href="impresoras.php?toner=<?= $id ?>">+ Cambio de tóner</a><?php endif; ?>
+          <?php if ($item['consumible']): ?><a class="btn btn-borde btn-sm" href="impresoras.php?toner=<?= $id ?>&volver=item#formulario">+ Cambio de tóner</a><?php endif; ?>
         </div><?php endif; ?></div>
       <p class="tenue" style="margin:0 0 8px;font-size:12.5px">Asignaciones, préstamos, devoluciones, reparaciones, mantenimientos y cambios, del más reciente al más antiguo.</p>
       <?php if (es_admin()): ?>

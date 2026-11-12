@@ -13,9 +13,10 @@ if ($toner_id && $_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             ->execute([$toner_id, $fecha, trim($_POST['consumible'] ?? '') ?: null, $cont === '' ? null : (int)$cont,
                 trim($_POST['notas'] ?? '') ?: null, usuario()['id']]);
         registrar_movimiento($toner_id, 'consumible', 'Cambio de ' . trim($_POST['consumible'] ?? 'toner'));
-        flash('Cambio registrado');
-    }
-    ir('impresoras.php');
+        flash('Cambio de tóner registrado');
+    } else flash('Pon la fecha del cambio', 'error');
+    // si vino desde la ficha del equipo, vuelve a la ficha
+    ir(($_POST['volver'] ?? '') === 'item' ? 'item.php?id=' . $toner_id : 'impresoras.php#imp-' . $toner_id);
 }
 
 // reparaciones y revisiones por fuera: a quien se mando, que tenia, cotizacion y cuanto costo
@@ -102,7 +103,7 @@ require __DIR__ . '/inc/header.php';
 </div>
 
 <?php if ($sel && es_admin()): ?>
-<form method="post" action="impresoras.php?toner=<?= $sel['id'] ?>" class="tarjeta">
+<form method="post" action="impresoras.php?toner=<?= $sel['id'] ?>" class="tarjeta form-destacado" id="formulario"><input type="hidden" name="volver" value="<?= e($_GET['volver'] ?? '') ?>">
   <?= csrf_campo() ?>
   <h2>Cambio de toner · <?= e($sel['etiqueta'] . ' ' . $sel['modelo']) ?></h2>
   <div class="rejilla">
@@ -116,7 +117,7 @@ require __DIR__ . '/inc/header.php';
 <?php endif; ?>
 
 <?php if ($sel_rep && es_admin()): ?>
-<form method="post" action="impresoras.php?reparar=<?= $sel_rep['id'] ?>" class="tarjeta" enctype="multipart/form-data">
+<form method="post" action="impresoras.php?reparar=<?= $sel_rep['id'] ?>" class="tarjeta form-destacado" id="formulario" enctype="multipart/form-data">
   <?= csrf_campo() ?><input type="hidden" name="accion" value="reparar">
   <h2>Mandar a reparar · <?= e($sel_rep['etiqueta'] . ' ' . $sel_rep['modelo']) ?></h2>
   <div class="rejilla">
@@ -133,7 +134,7 @@ require __DIR__ . '/inc/header.php';
 <?php endif; ?>
 
 <?php if ($sel_reg && es_admin()): ?>
-<form method="post" action="impresoras.php?regreso=<?= $sel_reg['id'] ?>" class="tarjeta" enctype="multipart/form-data">
+<form method="post" action="impresoras.php?regreso=<?= $sel_reg['id'] ?>" class="tarjeta form-destacado" id="formulario" enctype="multipart/form-data">
   <?= csrf_campo() ?><input type="hidden" name="accion" value="regreso">
   <h2>Regreso de <?= e($sel_reg['etiqueta']) ?> · <?= e($sel_reg['proveedor']) ?></h2>
   <p class="tenue" style="margin-top:-6px">Salió el <?= fecha_corta($sel_reg['fecha_envio']) ?>: <?= e($sel_reg['falla']) ?><?= $sel_reg['cotizacion_valor'] !== null ? ' · cotización ' . pesos($sel_reg['cotizacion_valor']) : '' ?></p>
@@ -158,9 +159,9 @@ require __DIR__ . '/inc/header.php';
         <td class="mono"><?= e($i['consumible'] ?: '—') ?></td>
         <td><?= fecha_corta($i['ultimo_cambio']) ?: '—' ?><?= $i['cambios_anio'] ? '<small>' . $i['cambios_anio'] . ' en 12 meses</small>' : '' ?></td>
         <td style="white-space:nowrap"><?php if (es_admin()): ?><a class="btn btn-borde btn-sm" href="item.php?id=<?= $i['id'] ?>&editar=1&volver=impresoras.php" title="Editar ubicación, IP, tóner, modelo...">✎ Editar</a>
-          <a class="btn btn-borde btn-sm" href="?toner=<?= $i['id'] ?>">Cambio de toner</a>
-          <?php if (isset($en_rep[$i['id']])): ?><a class="btn btn-primario btn-sm" href="?regreso=<?= $en_rep[$i['id']]['id'] ?>">Registrar regreso</a>
-          <?php else: ?><a class="btn btn-borde btn-sm" href="?reparar=<?= $i['id'] ?>">Mandar a reparar</a><?php endif; ?><?php endif; ?></td></tr>
+          <a class="btn btn-borde btn-sm" href="?toner=<?= $i['id'] ?>#formulario">Cambio de toner</a>
+          <?php if (isset($en_rep[$i['id']])): ?><a class="btn btn-primario btn-sm" href="?regreso=<?= $en_rep[$i['id']]['id'] ?>#formulario">Registrar regreso</a>
+          <?php else: ?><a class="btn btn-borde btn-sm" href="?reparar=<?= $i['id'] ?>#formulario">Mandar a reparar</a><?php endif; ?><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
   <div class="tarjeta">
@@ -186,7 +187,7 @@ require __DIR__ . '/inc/header.php';
         <td><?= pesos($r['cotizacion_valor']) ?><?= $r['cotizacion_archivo'] ? '<small><a href="' . e(url_archivo($r['cotizacion_archivo'])) . '" target="_blank">Ver cotización</a></small>' : '' ?></td>
         <td><?= $r['estado'] === 'enviada' ? '<span class="chip chip-mantenimiento">En reparación</span>' : fecha_corta($r['fecha_regreso']) . '<small>' . ($r['estado'] === 'sin_arreglo' ? '<span class="chip chip-danado">Sin arreglo</span>' : 'Reparada') . '</small>' ?></td>
         <td><b><?= pesos($r['costo_final']) ?></b><?= $r['factura_archivo'] ? '<small><a href="' . e(url_archivo($r['factura_archivo'])) . '" target="_blank">Ver factura</a></small>' : '' ?></td>
-        <td><?php if ($r['estado'] === 'enviada' && es_admin()): ?><a class="btn btn-borde btn-sm" href="?regreso=<?= $r['id'] ?>">Registrar regreso</a><?php endif; ?></td></tr>
+        <td><?php if ($r['estado'] === 'enviada' && es_admin()): ?><a class="btn btn-borde btn-sm" href="?regreso=<?= $r['id'] ?>#formulario">Registrar regreso</a><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
   <?php endif; ?>
