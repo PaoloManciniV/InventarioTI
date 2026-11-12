@@ -134,7 +134,9 @@ require __DIR__ . '/inc/header.php';
 <?php if ($tab === 'usuarios'):
   $lista = $pdo->query('SELECT * FROM usuarios ORDER BY activo DESC, nombre')->fetchAll();
   $edit = $ed ? current(array_filter($lista, fn($u) => (int)$u['id'] === $ed)) : null; ?>
-  <form method="post" class="tarjeta"><?= csrf_campo() ?><input type="hidden" name="accion" value="usuario"><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
+  <?php if ($edit): ?><div class="modal-fondo" data-cerrar="?tab=usuarios"><?php endif; ?>
+  <form method="post" class="tarjeta<?= $edit ? ' modal-caja' : '' ?>"<?= $edit ? ' role="dialog" aria-modal="true"' : '' ?>><?= csrf_campo() ?><input type="hidden" name="accion" value="usuario"><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
+    <?php if ($edit): ?><a class="modal-x" href="?tab=usuarios" aria-label="Cerrar">×</a><?php endif; ?>
     <h2><?= $edit ? 'Editar usuario' : 'Nuevo usuario' ?></h2>
     <div class="rejilla">
       <div class="campo"><label>Nombre</label><input name="nombre" required value="<?= e($edit['nombre'] ?? '') ?>"></div>
@@ -155,6 +157,7 @@ require __DIR__ . '/inc/header.php';
       <small>Consulta solo ve; Administrador además edita. Los marcados “solo admin” no aplican a Consulta.</small></div>
     <p><button class="btn btn-primario">Guardar</button><?php if ($edit): ?> <a class="btn btn-borde" href="?tab=usuarios">Cancelar</a><?php endif; ?></p>
   </form>
+  <?php if ($edit): ?></div><?php endif; ?>
   <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="probar_correo">
     <div style="flex:1"><b>Correo de actas</b><br><small class="tenue"><?php $pc = proveedor_correo(); ?><?= $pc === 'smtp' ? 'SMTP ' . e(env('MAIL_HOST')) . ' (el mismo de empleados) · sale desde ' . e(env('MAIL_USER')) : ($pc !== 'none' ? 'Proveedor ' . e($pc) . ' · remitente ' . e(env('MAIL_FROM', '')) : 'No encontré la configuración de correo de empleados (private/.env)') ?></small></div>
     <button class="btn btn-borde btn-sm">Enviarme un correo de prueba</button></form>
@@ -216,10 +219,19 @@ require __DIR__ . '/inc/header.php';
 <?php elseif ($tab === 'sedes'):
   $lista = $pdo->query('SELECT s.*, (SELECT COUNT(*) FROM items i WHERE i.sede_id = s.id) n FROM sedes s ORDER BY activo DESC, nombre')->fetchAll();
   $edit = $ed ? current(array_filter($lista, fn($s) => (int)$s['id'] === $ed)) : null; ?>
-  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="sede"><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
-    <input name="nombre" placeholder="Nombre de la bodega (ej. Bodega XM)" required value="<?= e($edit['nombre'] ?? '') ?>" style="flex:1">
-    <button class="btn btn-primario"><?= $edit ? 'Guardar' : '+ Agregar' ?></button>
+  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="sede"><input type="hidden" name="id" value="0">
+    <input name="nombre" placeholder="Nombre de la bodega (ej. Bodega XM)" required style="flex:1">
+    <button class="btn btn-primario">+ Agregar</button>
   </form>
+  <?php if ($edit): ?><div class="modal-fondo" data-cerrar="?tab=sedes">
+  <form method="post" class="tarjeta modal-caja" role="dialog" aria-modal="true"><?= csrf_campo() ?><input type="hidden" name="accion" value="sede"><input type="hidden" name="id" value="<?= $edit['id'] ?>">
+    <a class="modal-x" href="?tab=sedes" aria-label="Cerrar">×</a>
+    <h2>Editar bodega · <?= e($edit['nombre']) ?></h2>
+    <div class="rejilla">
+      <div class="campo" style="grid-column:1/-1"><label>Nombre</label><input name="nombre" required value="<?= e($edit['nombre']) ?>"></div>
+    </div>
+    <p style="margin-bottom:0"><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="?tab=sedes">Cancelar</a></p>
+  </form></div><?php endif; ?>
   <div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Bodega</th><th>Items</th><th></th></tr></thead><tbody>
   <?php foreach ($lista as $s): ?>
     <tr style="<?= $s['activo'] ? '' : 'opacity:.5' ?>"><td><?= e($s['nombre']) ?></td><td><?= $s['n'] ?></td>
@@ -232,11 +244,21 @@ require __DIR__ . '/inc/header.php';
 <?php elseif ($tab === 'areas'):
   $lista = $pdo->query('SELECT a.*, (SELECT COUNT(*) FROM colaboradores c WHERE c.area_id = a.id AND c.activo = 1) n FROM areas a ORDER BY activo DESC, nombre')->fetchAll();
   $edit = $ed ? current(array_filter($lista, fn($s) => (int)$s['id'] === $ed)) : null; ?>
-  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="area"><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
-    <input name="nombre" placeholder="Nombre del area" required value="<?= e($edit['nombre'] ?? '') ?>" style="flex:1">
-    <input name="grupos" placeholder="Grupos separados por coma (opcional) ej RED, AD" value="<?= e($edit['grupos'] ?? '') ?>" style="flex:1">
-    <button class="btn btn-primario"><?= $edit ? 'Guardar' : '+ Agregar' ?></button>
+  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="area"><input type="hidden" name="id" value="0">
+    <input name="nombre" placeholder="Nombre del area" required style="flex:1">
+    <input name="grupos" placeholder="Grupos separados por coma (opcional) ej RED, AD" style="flex:1">
+    <button class="btn btn-primario">+ Agregar</button>
   </form>
+  <?php if ($edit): ?><div class="modal-fondo" data-cerrar="?tab=areas">
+  <form method="post" class="tarjeta modal-caja" role="dialog" aria-modal="true"><?= csrf_campo() ?><input type="hidden" name="accion" value="area"><input type="hidden" name="id" value="<?= $edit['id'] ?>">
+    <a class="modal-x" href="?tab=areas" aria-label="Cerrar">×</a>
+    <h2>Editar área · <?= e($edit['nombre']) ?></h2>
+    <div class="rejilla">
+      <div class="campo"><label>Nombre</label><input name="nombre" required value="<?= e($edit['nombre']) ?>"></div>
+      <div class="campo"><label>Grupos (separados por coma, opcional)</label><input name="grupos" value="<?= e($edit['grupos'] ?? '') ?>" placeholder="RED, AD"></div>
+    </div>
+    <p style="margin-bottom:0"><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="?tab=areas">Cancelar</a></p>
+  </form></div><?php endif; ?>
   <div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Area</th><th>Grupos</th><th>Personas</th><th></th></tr></thead><tbody>
   <?php foreach ($lista as $ar): ?>
     <tr style="<?= $ar['activo'] ? '' : 'opacity:.5' ?>"><td><?= e($ar['nombre']) ?></td><td><?= e($ar['grupos'] ? str_replace(',', ' · ', $ar['grupos']) : '—') ?></td><td><?= $ar['n'] ?></td>
@@ -249,12 +271,23 @@ require __DIR__ . '/inc/header.php';
 <?php else:
   $lista = $pdo->query('SELECT c.*, (SELECT COUNT(*) FROM items i WHERE i.categoria_id = c.id) n FROM categorias c ORDER BY activo DESC, nombre')->fetchAll();
   $edit = $ed ? current(array_filter($lista, fn($s) => (int)$s['id'] === $ed)) : null; ?>
-  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="categoria"><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
-    <input name="nombre" placeholder="Nombre de la categoria" required value="<?= e($edit['nombre'] ?? '') ?>" style="flex:1">
-    <input name="prefijo" placeholder="Prefijo etiqueta (PC)" required maxlength="10" value="<?= e($edit['prefijo'] ?? '') ?>" style="width:170px">
-    <input type="number" min="0" name="mant_meses" placeholder="Mantenimiento cada (meses)" value="<?= e($edit['mant_meses'] ?? '') ?>" style="width:230px">
-    <button class="btn btn-primario"><?= $edit ? 'Guardar' : '+ Agregar' ?></button>
+  <form method="post" class="tarjeta filtros" style="align-items:center"><?= csrf_campo() ?><input type="hidden" name="accion" value="categoria"><input type="hidden" name="id" value="0">
+    <input name="nombre" placeholder="Nombre de la categoria" required style="flex:1">
+    <input name="prefijo" placeholder="Prefijo etiqueta (PC)" required maxlength="10" style="width:170px">
+    <input type="number" min="0" name="mant_meses" placeholder="Mantenimiento cada (meses)" style="width:230px">
+    <button class="btn btn-primario">+ Agregar</button>
   </form>
+  <?php if ($edit): ?><div class="modal-fondo" data-cerrar="?tab=categorias">
+  <form method="post" class="tarjeta modal-caja" role="dialog" aria-modal="true"><?= csrf_campo() ?><input type="hidden" name="accion" value="categoria"><input type="hidden" name="id" value="<?= $edit['id'] ?>">
+    <a class="modal-x" href="?tab=categorias" aria-label="Cerrar">×</a>
+    <h2>Editar categoría · <?= e($edit['nombre']) ?></h2>
+    <div class="rejilla">
+      <div class="campo" style="grid-column:1/-1"><label>Nombre</label><input name="nombre" required value="<?= e($edit['nombre']) ?>"></div>
+      <div class="campo"><label>Prefijo de la etiqueta</label><input name="prefijo" required maxlength="10" value="<?= e($edit['prefijo']) ?>"></div>
+      <div class="campo"><label>Mantenimiento cada (meses)</label><input type="number" min="0" name="mant_meses" value="<?= e($edit['mant_meses'] ?? '') ?>"></div>
+    </div>
+    <p style="margin-bottom:0"><button class="btn btn-primario">Guardar</button> <a class="btn btn-borde" href="?tab=categorias">Cancelar</a></p>
+  </form></div><?php endif; ?>
   <div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Categoria</th><th>Prefijo</th><th>Mantenimiento</th><th>Items</th><th></th></tr></thead><tbody>
   <?php foreach ($lista as $c): ?>
     <tr style="<?= $c['activo'] ? '' : 'opacity:.5' ?>"><td><?= e($c['nombre']) ?></td><td class="mono"><?= e($c['prefijo']) ?>-0001</td><td><?= $c['mant_meses'] ? 'Cada ' . $c['mant_meses'] . ' meses' : '—' ?></td><td><?= $c['n'] ?></td>

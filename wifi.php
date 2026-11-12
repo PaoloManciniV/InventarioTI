@@ -65,13 +65,16 @@ require __DIR__ . '/inc/header.php';
     <tr style="<?= $r['activo'] ? '' : 'opacity:.5' ?>"><td><b><?= e($r['ssid']) ?></b><?php if ($r['notas']): ?><small><?= e($r['notas']) ?></small><?php endif; ?></td>
       <td><?= campo_secreto('wifi', $r['id'], (bool)$r['clave_cifrada']) ?></td>
       <td><?= e($r['banda'] ?: '—') ?></td><td><?= e($r['seguridad'] ?: '—') ?></td><td><?= e($r['aps'] ?: '—') ?></td>
-      <td style="text-align:right;white-space:nowrap"><a class="btn btn-borde btn-sm" href="?ed=<?= $r['id'] ?>#form">Editar</a>
+      <td style="text-align:right;white-space:nowrap"><a class="btn btn-borde btn-sm" href="?ed=<?= $r['id'] ?>">Editar</a>
         <form method="post" style="display:inline"><?= csrf_campo() ?><input type="hidden" name="accion" value="activo"><input type="hidden" name="id" value="<?= $r['id'] ?>">
           <button class="btn btn-borde btn-sm"><?= $r['activo'] ? 'Ocultar' : 'Mostrar' ?></button></form></td></tr>
   <?php endforeach; ?>
   </tbody></table></div>
 
-<form method="post" class="tarjeta" id="form"><?= csrf_campo() ?><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
+<?php if ($edit): ?><div class="modal-fondo" data-cerrar="wifi.php"><?php endif; ?>
+<form method="post" class="tarjeta<?= $edit ? ' modal-caja' : '' ?>" id="form"<?= $edit ? ' role="dialog" aria-modal="true"' : '' ?>><?= csrf_campo() ?><input type="hidden" name="id" value="<?= $edit['id'] ?? 0 ?>">
+  <?php if ($edit): ?><a class="modal-x" href="wifi.php" aria-label="Cerrar">×</a>
+  <?php if ($error): ?><div class="aviso aviso-error"><?= e($error) ?></div><?php endif; ?><?php endif; ?>
   <h2><?= $edit ? 'Editar ' . e($edit['ssid']) : 'Nueva red' ?></h2>
   <div class="rejilla">
     <div class="campo"><label>SSID</label><input name="ssid" required value="<?= e($edit['ssid'] ?? '') ?>"></div>
@@ -83,6 +86,7 @@ require __DIR__ . '/inc/header.php';
   </div>
   <p><button class="btn btn-primario">Guardar</button><?php if ($edit): ?> <a class="btn btn-borde" href="wifi.php">Cancelar</a><?php endif; ?></p>
 </form>
+<?php if ($edit): ?></div><?php endif; ?>
 
 <div class="dos-col">
   <div class="tabla-envoltura"><table class="tabla">

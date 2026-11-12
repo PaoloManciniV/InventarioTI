@@ -167,7 +167,10 @@ require __DIR__ . '/inc/header.php';
 
 <?php if ($ver === 'herramientas'): ?>
 <?php if ($nuevo && es_admin()): ?>
-<form method="post" class="tarjeta" enctype="multipart/form-data"><?= csrf_campo() ?><input type="hidden" name="id" value="<?= (int)($edit['id'] ?? 0) ?>">
+<div class="modal-fondo" data-cerrar="herramientas.php">
+<form method="post" class="tarjeta modal-caja" role="dialog" aria-modal="true" enctype="multipart/form-data"><?= csrf_campo() ?><input type="hidden" name="id" value="<?= (int)($edit['id'] ?? 0) ?>">
+  <a class="modal-x" href="herramientas.php" aria-label="Cerrar">×</a>
+  <?php if ($error): ?><div class="aviso aviso-error"><?= e($error) ?></div><?php endif; ?>
   <h2><?= $edit ? 'Editar herramienta' : 'Nueva herramienta' ?></h2>
   <div class="rejilla">
     <div class="campo"><label>Nombre</label><input name="nombre" required value="<?= e($_POST['nombre'] ?? $edit['nombre'] ?? '') ?>" placeholder="Kyocera Net Viewer"></div>
@@ -181,6 +184,7 @@ require __DIR__ . '/inc/header.php';
   </div>
   <p style="display:flex;gap:8px;margin-bottom:0"><button class="btn btn-primario">Guardar</button><a class="btn btn-borde" href="herramientas.php">Cancelar</a></p>
 </form>
+</div>
 <?php endif; ?>
 
 <form class="filtros"><input type="search" name="q" value="<?= e($q) ?>" placeholder="Buscar herramienta, configuración o para qué sirve" style="flex:1"><button class="btn btn-borde">Buscar</button></form>
@@ -215,7 +219,10 @@ require __DIR__ . '/inc/header.php';
 
 <?php else: /* contactos */ ?>
 <?php if ($ec && es_admin()): $cv = fn($k) => e($_POST[$k] ?? $editc[$k] ?? ''); ?>
-<form method="post" class="tarjeta"><?= csrf_campo() ?><input type="hidden" name="que" value="contacto"><input type="hidden" name="id" value="<?= (int)($editc['id'] ?? 0) ?>">
+<div class="modal-fondo" data-cerrar="herramientas.php?ver=contactos">
+<form method="post" class="tarjeta modal-caja" role="dialog" aria-modal="true"><?= csrf_campo() ?><input type="hidden" name="que" value="contacto"><input type="hidden" name="id" value="<?= (int)($editc['id'] ?? 0) ?>">
+  <a class="modal-x" href="herramientas.php?ver=contactos" aria-label="Cerrar">×</a>
+  <?php if ($error): ?><div class="aviso aviso-error"><?= e($error) ?></div><?php endif; ?>
   <h2><?= $editc ? 'Editar contacto' : 'Nuevo contacto' ?></h2>
   <div class="rejilla">
     <div class="campo"><label>Empresa</label><input name="empresa" required value="<?= $cv('empresa') ?>" placeholder="Copytel del Caribe"></div>
@@ -230,6 +237,7 @@ require __DIR__ . '/inc/header.php';
   </div>
   <p style="display:flex;gap:8px;margin-bottom:0"><button class="btn btn-primario">Guardar</button><a class="btn btn-borde" href="herramientas.php?ver=contactos">Cancelar</a></p>
 </form>
+</div>
 <?php endif; ?>
 
 <form class="filtros"><input type="hidden" name="ver" value="contactos"><input type="search" name="q" value="<?= e($q) ?>" placeholder="Buscar empresa, persona, para qué, teléfono..." style="flex:1"><button class="btn btn-borde">Buscar</button></form>
