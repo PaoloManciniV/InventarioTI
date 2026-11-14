@@ -65,6 +65,6 @@ if ($a && $a['estado'] === 'pendiente' && !$vencido && $_SERVER['REQUEST_METHOD'
     </form>
   <?php endif; ?>
 </div>
-<script src="assets/app.js?v=9"></script>
+<script src="assets/app.js?v=10"></script>
 </body>
 </html>

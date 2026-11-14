@@ -124,6 +124,6 @@ $tipo_txt = fn($x) => !empty($x['prestamo']) ? 'Préstamo' : ($x['tipo'] === 'en
   <p><a class="tenue" href="acta.php?id=<?= $id ?>#firmar">Mandar enlace o correo en vez de firmar aquí</a></p>
 <?php endif; ?>
 </div>
-<script src="assets/app.js?v=9"></script>
+<script src="assets/app.js?v=10"></script>
 </body>
 </html>

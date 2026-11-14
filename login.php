@@ -72,6 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <button class="btn btn-primario btn-bloque">Ingresar</button>
 </form></div>
 <style>@keyframes parpadeo { 50% { opacity: 0; } }</style>
-<script src="assets/app.js?v=9"></script>
+<script src="assets/app.js?v=10"></script>
 </body>
 </html>

@@ -287,3 +287,38 @@ document.addEventListener('DOMContentLoaded', function () {
   var f = m.querySelector('input:not([type=hidden]):not([type=date]), textarea, select');
   if (f) f.focus();
 })();
+
+/* campos con sugerencias (condición, grupo, proveedor): al entrar se ven TODAS las opciones,
+   no solo las que coinciden con lo escrito. Si sales sin escoger nada, queda lo que tenía */
+(function () {
+  document.addEventListener('focusin', function (e) {
+    var i = e.target;
+    if (!i.matches || !i.matches('input[list]') || i.closest('.cond-pop') || i.value === '') return;
+    i.dataset.antes = i.value;
+    i.dataset.ph = i.placeholder;
+    i.placeholder = i.value;
+    i.value = '';
+  });
+  // ya escogió una opción y vuelve a hacer clic (sin salir del campo): otra vez todas las opciones
+  document.addEventListener('click', function (e) {
+    var i = e.target;
+    if (!i.matches || !i.matches('input[list]') || i.closest('.cond-pop') || i.value === '' || document.activeElement !== i) return;
+    if (i.dataset.ph === undefined) i.dataset.ph = i.placeholder;
+    i.dataset.antes = i.value;
+    i.placeholder = i.value;
+    i.value = '';
+  });
+  document.addEventListener('focusout', function (e) {
+    var i = e.target;
+    if (!i.matches || !i.matches('input[list]') || i.dataset.antes === undefined) return;
+    if (i.value.trim() === '') i.value = i.dataset.antes;
+    i.placeholder = i.dataset.ph || '';
+    delete i.dataset.antes; delete i.dataset.ph;
+  });
+  // si envian el formulario con el campo aun enfocado y vacio, no se pierde lo que tenia
+  document.addEventListener('submit', function (e) {
+    e.target.querySelectorAll('input[list]').forEach(function (i) {
+      if (i.dataset.antes !== undefined && i.value.trim() === '') i.value = i.dataset.antes;
+    });
+  }, true);
+})();
