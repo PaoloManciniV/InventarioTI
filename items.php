@@ -59,6 +59,9 @@ function url_filtro($cambios) {
     return 'items.php?' . http_build_query(array_filter($p, fn($v) => $v !== '' && $v !== null));
 }
 
+// la ficha del equipo vuelve a esta misma lista (con el grupo, estado o busqueda que tenia)
+$_SESSION['lista_items'] = url_filtro([]);
+
 $titulo = 'Inventario';
 $menu = 'items';
 require __DIR__ . '/inc/header.php';
@@ -68,7 +71,7 @@ require __DIR__ . '/inc/header.php';
   <div class="acciones">
     <?= boton_cambios(cambios_de_varios('items', array_column($items, 'id'), 5), array_column($items, 'etiqueta', 'id')) ?>
     <a class="btn btn-borde" href="<?= e(url_filtro(['exportar' => 1])) ?>">Exportar a Excel</a>
-    <?php if (es_admin()): ?><a class="btn btn-primario" href="item.php">+ Nuevo item</a><?php endif; ?>
+    <?php if (es_admin()): ?><a class="btn btn-primario" href="item.php<?= $cat !== '' ? '?cat=' . (int)$cat : '' ?>">+ Nuevo item</a><?php endif; ?>
   </div>
 </div>
 

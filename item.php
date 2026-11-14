@@ -174,12 +174,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
 
 function flash_pendiente() { return !empty($_SESSION['flash']); }
 
+// volver a la lista de donde venia (por ejemplo solo los de Red); si no hay, a los de su categoria
+$lista = $_SESSION['lista_items'] ?? '';
+if (!preg_match('#^items\.php(\?[A-Za-z0-9_=&%.+\-]*)?$#', $lista)) $lista = '';
+$cat_lista = $lista && preg_match('#[?&]cat=(\d+)#', $lista, $m) ? (int)$m[1] : 0;
+$cat_item = (int)($item['categoria_id'] ?? ($_GET['cat'] ?? 0));
+if ($lista === 'items.php?') $lista = 'items.php';
+if (!$lista || ($cat_lista && $cat_item && $cat_lista !== $cat_item && !preg_match('#[?&]q=#', $lista))) {
+    $lista = $cat_item ? 'items.php?cat=' . $cat_item : 'items.php';
+    $cat_lista = $cat_item;
+}
+$texto_lista = 'Inventario';
+if ($cat_lista) {
+    foreach (categorias(false) as $c) {
+        if ((int)$c['id'] === $cat_lista) $texto_lista = 'Inventario · ' . $c['nombre'];
+    }
+} elseif (preg_match('#[?&](q|estado|sede|colab)=#', $lista)) {
+    $texto_lista = 'Volver a la lista';
+}
+
 $titulo = $item ? ($item['etiqueta'] ?? 'Item') : 'Nuevo item';
 $menu = 'items';
 require __DIR__ . '/inc/header.php';
 ?>
 <div class="cabecera">
-  <div><a href="items.php" class="tenue">&larr; Inventario</a>
+  <div><a href="<?= e($lista) ?>" class="tenue">&larr; <?= e($texto_lista) ?></a>
     <h1><?= $item && !empty($item['id']) ? e($item['etiqueta']) . ' · ' . e($item['nombre']) : 'Nuevo item' ?></h1></div>
   <?php if (!$editar && es_admin()): ?>
   <div class="acciones">
@@ -199,7 +218,7 @@ require __DIR__ . '/inc/header.php';
 <form method="post" class="tarjeta">
   <?= csrf_campo() ?><?php if ($volver): ?><input type="hidden" name="volver" value="<?= e($volver) ?>"><?php endif; ?>
   <div class="rejilla">
-    <div class="campo"><label>Categoria</label><select name="categoria_id"><?= opciones(categorias(), $item['categoria_id'] ?? '', 'nombre', 'Sin categoria') ?></select></div>
+    <div class="campo"><label>Categoria</label><select name="categoria_id"><?= opciones(categorias(), $item['categoria_id'] ?? (int)($_GET['cat'] ?? 0) ?: '', 'nombre', 'Sin categoria') ?></select></div>
     <div class="campo"><label>Etiqueta (vacio = automatica)</label><input name="etiqueta" value="<?= e($item['etiqueta'] ?? '') ?>" placeholder="PC-0001"></div>
     <div class="campo"><label>Nombre *</label><input name="nombre" required value="<?= e($item['nombre'] ?? '') ?>" placeholder="Portatil contabilidad"></div>
     <div class="campo"><label>Marca</label><input name="marca" value="<?= e($item['marca'] ?? '') ?>"></div>
@@ -227,7 +246,7 @@ require __DIR__ . '/inc/header.php';
     <div class="campo ancho"><label>Notas</label><textarea name="notas"><?= e($item['notas'] ?? '') ?></textarea></div>
   </div>
   <p><button class="btn btn-primario">Guardar</button>
-    <a class="btn btn-borde" href="<?= e($volver ?: ($id ? 'item.php?id=' . $id : 'items.php')) ?>">Cancelar</a></p>
+    <a class="btn btn-borde" href="<?= e($volver ?: ($id ? 'item.php?id=' . $id : $lista)) ?>">Cancelar</a></p>
 </form>
 <?php else: ?>
 <div class="dos-col">
