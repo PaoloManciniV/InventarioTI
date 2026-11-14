@@ -87,7 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             while (in_array($et, $nuevas, true) || ($chk->execute([$et]) && $chk->fetchColumn())) $et = $item['etiqueta'] . '-' . $suf . $n++;
             $ins->execute([$et, mb_substr($parte, 0, 150), $item['categoria_id'], $item['marca'], $item['sede_id'], $item['ubicacion'], $item['condicion'] ?? null,
                 'Parte del combo ' . $item['etiqueta'] . ' (' . $item['nombre'] . ')']);
-            registrar_movimiento((int)$pdo->lastInsertId(), 'creado', 'Separado del combo ' . $item['etiqueta']);
+            $nid = (int)$pdo->lastInsertId();
+            registrar_movimiento($nid, 'creado', 'Separado del combo ' . $item['etiqueta']);
+            aviso_inventario($nid, null, 'Separado del combo ' . $item['etiqueta']);
             $nuevas[] = $et;
         }
         // el combo deja de existir: si ya tiene historia (actas) queda de baja como registro, si no se borra

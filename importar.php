@@ -232,13 +232,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->prepare('UPDATE items SET ' . implode(', ', array_map(fn($c) => "$c = ?", array_keys($d))) . ', actualizado = NOW() WHERE id = ?')
                     ->execute(array_merge(array_values($d), [$existe]));
                 registrar_movimiento($existe, 'importacion', 'Actualizado desde ' . $vista['archivo'], $colab_id);
+                aviso_inventario($existe, [], 'Actualizado desde el Excel ' . $vista['archivo']);
                 $actualizados++;
             } else {
                 if ($etq === '') $etq = siguiente_etiqueta($cat_id);
                 $cols = array_keys($d);
                 $pdo->prepare('INSERT INTO items (etiqueta, ' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols) + 1, '?')) . ')')
                     ->execute(array_merge([$etq], array_values($d)));
-                registrar_movimiento((int)$pdo->lastInsertId(), 'importacion', 'Importado desde ' . $vista['archivo'], $colab_id);
+                $nid = (int)$pdo->lastInsertId();
+                registrar_movimiento($nid, 'importacion', 'Importado desde ' . $vista['archivo'], $colab_id);
+                aviso_inventario($nid, null, 'Importado desde el Excel ' . $vista['archivo']);
                 $creados++;
             }
         }

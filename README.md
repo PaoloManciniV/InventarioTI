@@ -24,6 +24,7 @@ PHP sin framework, JavaScript puro y MySQL/MariaDB. Sin Composer ni build: se su
 | Redes WiFi | Redes y claves cifradas (solo administradores) |
 | Importar Excel | Carga inicial desde .xlsx o .csv con vista previa |
 | Configuración | Usuarios y permisos por módulo, bodegas, áreas, categorías y registro de cambios |
+| Avisos por correo | Cada vez que alguien ingresa o cambia un equipo desde la plataforma llega un correo con qué cambió (antes y ahora), quién y cuándo. Los destinatarios van en `MAIL_INVENTARIO` del `.env` |
 
 ## Instalar
 

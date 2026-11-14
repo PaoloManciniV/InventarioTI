@@ -131,8 +131,9 @@ function valor_legible($campo, $v) {
 function auditar($tabla, $id, $antes, $despues, $nota = null) {
     $u = usuario()['id'] ?? null;
     $ins = db()->prepare('INSERT INTO cambios (tabla, ref_id, campo, antes, despues, nota, usuario_id) VALUES (?,?,?,?,?,?,?)');
-    if ($antes === null) { $ins->execute([$tabla, $id, '_creado', null, null, $nota ?: 'Creado', $u]); return 1; }
+    if ($antes === null) { $ins->execute([$tabla, $id, '_creado', null, null, $nota ?: 'Creado', $u]); if ($tabla === 'items' && $u) aviso_inventario($id, null, $nota ?: 'Creado'); return 1; }
     $n = 0;
+    $lista = [];
     foreach ($despues as $campo => $nuevo) {
         if (!array_key_exists($campo, $antes)) continue;
         $viejo = $antes[$campo];
@@ -142,9 +143,82 @@ function auditar($tabla, $id, $antes, $despues, $nota = null) {
         if ($a === $b) continue;
         $secreto = in_array($campo, ['clave_cifrada', 'password_hash'], true);
         $ins->execute([$tabla, $id, $campo, $secreto ? null : mb_substr($a, 0, 1000), $secreto ? null : mb_substr($b, 0, 1000), $nota, $u]);
+        $lista[] = [$campo, $secreto ? '' : $a, $secreto ? '(cambió)' : $b];
         $n++;
     }
+    if ($n && $tabla === 'items' && $u) aviso_inventario($id, $lista, $nota);
     return $n;
+}
+
+// aviso por correo cuando alguien ingresa o cambia un equipo desde la plataforma
+// (las actas firmadas ya mandan su propio correo). Junta todo lo de la misma accion en un solo correo
+function aviso_inventario($item_id, $cambios, $nota) {
+    if (!isset($GLOBALS['aviso_inv'])) {
+        $GLOBALS['aviso_inv'] = [];
+        $GLOBALS['aviso_inv_quien'] = usuario()['nombre'] ?? 'alguien';
+        register_shutdown_function('enviar_aviso_inventario');
+    }
+    $GLOBALS['aviso_inv'][] = [(int)$item_id, $cambios, $nota];
+}
+
+function enviar_aviso_inventario() {
+    $cola = $GLOBALS['aviso_inv'] ?? [];
+    if (!$cola) return;
+    $para = array_filter(array_map('trim', explode(',', env('MAIL_INVENTARIO', ''))));
+    if (!$para || !correo_configurado()) return;
+    // la pagina le responde primero al usuario y el correo sale despues, para no hacerlo esperar
+    if (function_exists('fastcgi_finish_request')) { session_write_close(); fastcgi_finish_request(); }
+    try {
+        $por = [];
+        foreach ($cola as [$id, $cambios, $nota]) {
+            $por[$id]['nuevo'] = ($por[$id]['nuevo'] ?? false) || $cambios === null;
+            if ($cambios) foreach ($cambios as $c) $por[$id]['campos'][] = $c;
+            if ($nota && !in_array($nota, ['Creado', 'Equipo creado'], true)) $por[$id]['notas'][$nota] = 1;
+        }
+        $st = db()->prepare('SELECT i.id, i.etiqueta, i.nombre, i.marca, i.modelo, i.estado, i.condicion, i.ubicacion, c.nombre categoria
+            FROM items i LEFT JOIN categorias c ON c.id = i.categoria_id WHERE i.id = ?');
+        $nombres = campos_legibles();
+        $bloques = '';
+        $etqs = [];
+        $nuevos = 0;
+        $td = 'padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top';
+        $mas = 0;
+        foreach ($por as $id => $x) {
+            $st->execute([$id]);
+            $it = $st->fetch();
+            if (!$it) continue;
+            $etqs[] = $it['etiqueta'];
+            if ($x['nuevo']) $nuevos++;
+            // una importacion grande no arma un correo infinito
+            if (count($etqs) > 30) { $mas++; continue; }
+            $titulo = e($it['etiqueta']) . ' · ' . e(trim($it['nombre'] . ' ' . $it['marca'] . ' ' . $it['modelo']));
+            $bloques .= '<div style="border:1px solid #e3e3e3;margin:0 0 14px;padding:12px 14px">'
+                . '<div style="font-size:15px"><b>' . $titulo . '</b> <span style="font-size:12px;color:' . ($x['nuevo'] ? '#1a7f37' : '#8a6d00') . '">' . ($x['nuevo'] ? 'NUEVO EN EL INVENTARIO' : 'CAMBIO') . '</span></div>'
+                . '<div style="color:#666;font-size:12px;margin:3px 0 8px">' . e(trim(($it['categoria'] ?? '') . ' · ' . (estados_item()[$it['estado']] ?? $it['estado']) . ($it['condicion'] ? ' · ' . $it['condicion'] : '') . ($it['ubicacion'] ? ' · ' . $it['ubicacion'] : ''), ' ·')) . '</div>';
+            if (!empty($x['campos'])) {
+                $bloques .= '<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="background:#f6f6f6"><th style="' . $td . ';text-align:left">Campo</th><th style="' . $td . ';text-align:left">Antes</th><th style="' . $td . ';text-align:left">Ahora</th></tr>';
+                foreach ($x['campos'] as [$campo, $a, $b]) {
+                    $bloques .= '<tr><td style="' . $td . '">' . e($nombres[$campo] ?? $campo) . '</td><td style="' . $td . ';color:#999">' . e(valor_legible($campo, $a) ?: '—')
+                        . '</td><td style="' . $td . '"><b>' . e(valor_legible($campo, $b) ?: '—') . '</b></td></tr>';
+                }
+                $bloques .= '</table>';
+            }
+            if (!empty($x['notas'])) $bloques .= '<div style="font-size:12px;color:#555;margin-top:6px">' . e(implode(' · ', array_keys($x['notas']))) . '</div>';
+            $bloques .= '<div style="margin-top:8px"><a href="' . e(APP_URL . '/item.php?id=' . $id) . '" style="color:#000;font-size:12px">Ver hoja de vida →</a></div></div>';
+        }
+        if (!$bloques) return;
+        if ($mas) $bloques .= '<p style="color:#555">…y ' . $mas . ' equipos más. <a href="' . e(APP_URL . '/config_panel.php?tab=cambios') . '" style="color:#000">Ver el registro de cambios</a></p>';
+        $quien = $GLOBALS['aviso_inv_quien'];
+        $resumen = $nuevos ? ($nuevos === count($etqs) ? 'ingresó' : 'ingresó o cambió') : 'cambió';
+        $asunto = 'Inventario TI: ' . $quien . ' ' . $resumen . ' ' . (count($etqs) === 1 ? $etqs[0] : count($etqs) . ' equipos');
+        $html = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;border:1px solid #ddd">'
+            . '<div style="background:#000;color:#ffcd11;padding:14px 20px;font-weight:bold;letter-spacing:1px">AGRO-COSTA · INVENTARIO TI</div>'
+            . '<div style="padding:20px;color:#222"><p style="margin-top:0"><b>' . e($quien) . '</b> ' . $resumen . ' en la plataforma el ' . date('d/m/Y \a \l\a\s g:i a') . ':</p>'
+            . $bloques . '</div></div>';
+        enviar_correo(array_values(array_unique($para)), '', $asunto, $html);
+    } catch (Throwable $t) {
+        error_log('aviso de inventario: ' . $t->getMessage());
+    }
 }
 
 function cambios_de($tabla, $id, $limite = 50) {
@@ -410,6 +484,7 @@ function crear_item_prestamo(string $desc, ?string $serial, int $cant, ?string $
         ->execute([$et, mb_substr($desc, 0, 150), $cat, $serial ?: null, max(1, $cant), 'Creado al prestarlo' . ($cond ? ' (' . $cond . ')' : '')]);
     $id = (int)$pdo->lastInsertId();
     registrar_movimiento($id, 'creado', 'Se creó en el inventario al prestarlo');
+    if (usuario()) aviso_inventario($id, null, 'Se creó al hacer un préstamo');
     return [$id, $et];
 }
 
