@@ -17,6 +17,7 @@ $enlaces = [
     'informe' => ['informe.php', 'Informe anual', '&#9783;'],
     'herramientas' => ['herramientas.php', 'Herramientas', '&#9874;'],
 ];
+$enlaces['copias'] = ['copias.php', 'Copias de seguridad', '&#9921;'];
 $enlaces['wifi'] = ['wifi.php', 'Redes WiFi', '&#128274;'];
 $enlaces['importar'] = ['importar.php', 'Importar Excel', '&#8682;'];
 $enlaces['config'] = ['config_panel.php', 'Configuracion', '&#9881;'];
@@ -73,3 +74,13 @@ $puede_entregar = es_admin() && puede('actas');
     <?php if ($puede_entregar && $menu !== 'firma'): ?><a class="fab-firmar" href="firma.php">&#9997; Firmar<?= $pend ? ' <b>' . $pend . '</b>' : '' ?></a><?php endif; ?>
     <main class="contenido">
     <?php if ($f = flash()): ?><div class="aviso aviso-<?= e($f[1]) ?>"><?= e($f[0]) ?></div><?php endif; ?>
+    <?php // en la vista general: aviso si la copia de seguridad esta atrasada
+    if ($menu === 'inicio' && puede('copias')) {
+        try {
+            $uc = db()->query('SELECT MAX(fecha) FROM copias_seguridad')->fetchColumn();
+            $dc = max(1, (int)env('BACKUP_DIAS', 7));
+            if (!$uc || strtotime($uc) < time() - $dc * 86400) {
+                echo '<div class="aviso aviso-error"><b>Copia de seguridad atrasada:</b> ' . ($uc ? 'la última fue el ' . e(fecha_hora($uc)) : 'todavía no hay ninguna registrada') . '. <a href="copias.php">Ver copias</a></div>';
+            }
+        } catch (Throwable $t) { }
+    } ?>

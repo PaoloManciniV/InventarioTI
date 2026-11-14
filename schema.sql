@@ -67,6 +67,29 @@ CREATE TABLE IF NOT EXISTS `actas` (
   KEY `idx_colab` (`colaborador_id`),
   KEY `idx_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE IF NOT EXISTS `copias_seguridad` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fecha` datetime NOT NULL,
+  `persona` varchar(120) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
+  `origen` enum('script','manual') NOT NULL DEFAULT 'script',
+  `pc` varchar(80) DEFAULT NULL,
+  `usuario_windows` varchar(80) DEFAULT NULL,
+  `ip` varchar(45) DEFAULT NULL,
+  `disco` text DEFAULT NULL,
+  `carpetas` mediumtext DEFAULT NULL,
+  `total_mb` decimal(14,2) DEFAULT NULL,
+  `estado` enum('ok','revisar') NOT NULL DEFAULT 'ok',
+  `alertas` text DEFAULT NULL,
+  `captura` varchar(255) DEFAULT NULL,
+  `nota` text DEFAULT NULL,
+  `registrado_por` int(11) DEFAULT NULL,
+  `creado` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_fecha` (`fecha`),
+  KEY `idx_ip_creado` (`ip`,`creado`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `ajustes` (
   `clave` varchar(60) NOT NULL,
   `valor` varchar(500) DEFAULT NULL,

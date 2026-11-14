@@ -21,6 +21,7 @@ PHP sin framework, JavaScript puro y MySQL/MariaDB. Sin Composer ni build: se su
 | Informe anual | Conteo de equipos por tipo para contabilidad, exportable a Excel |
 | Herramientas | Programas, portales, configuraciones y archivos de descarga. Incluye el generador de firmas de correo (PNG con QR vCard) y el de stickers de ubicaciones para impresora Zebra (Code 128 / ZPL), los dos en la web |
 | Contactos de soporte y compras | Proveedores, soporte y escalamiento, con llamada y WhatsApp |
+| Copias de seguridad | Control de la copia desconectada al disco externo. Un script en el disco (`REPORTAR_COPIA.bat`, se descarga ya configurado desde el módulo) solo lee las carpetas: archivos, tamaño y fecha del más reciente. Pregunta quién hizo la copia y la reporta. Cada carpeta sale en verde o en rojo (vacía, falta, igual a la copia anterior o mucho más pequeña) y llega un correo. Si pasan más de `BACKUP_DIAS` sin copia, avisa (`copias_revisar.php` en el cron). También se puede registrar a mano con una captura |
 | Redes WiFi | Redes y claves cifradas (solo administradores) |
 | Importar Excel | Carga inicial desde .xlsx o .csv con vista previa |
 | Configuración | Usuarios y permisos por módulo, bodegas, áreas, categorías y registro de cambios |
