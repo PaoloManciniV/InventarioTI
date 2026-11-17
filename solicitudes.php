@@ -253,7 +253,7 @@ function form_lineas($cats, $lineas) {
             . '<input name="descripcion[]" list="lista-descs" maxlength="200" placeholder="Ej. Cable HDMI" value="' . e($l['descripcion']) . '" data-desc title="Nombre del artículo">'
             . '<input name="especificaciones[]" maxlength="255" placeholder="Ej. 3 m, macho-macho" value="' . e($l['especificaciones'] ?? '') . '" title="Especificaciones">'
             . '<input name="costo_estimado[]" inputmode="numeric" placeholder="$" value="' . ($l['costo_estimado'] !== null && $l['costo_estimado'] !== '' ? number_format((float)$l['costo_estimado'], 0, ',', '.') : '') . '" title="Costo estimado (opcional)">'
-            . '<select name="categoria[]" title="Categoría (para el resumen, no sale en el formato)"><option value="">Categoría…</option>';
+            . '<select name="categoria[]" title="Categoría (para el resumen)"><option value="">Categoría…</option>';
         foreach ($cats as $c) $h .= '<option' . (($l['categoria'] ?? '') === $c ? ' selected' : '') . '>' . e($c) . '</option>';
         $h .= '</select><button type="button" class="btn btn-borde btn-sm" data-quitar-linea title="Quitar">×</button></div>';
     }
@@ -266,13 +266,13 @@ function form_solicitud($s, $cats, $colabs, $lineas, $tipos) {
         . '<div class="campo" style="grid-column:1/-1"><label>Tipo de compra</label><div class="sol-tipos">';
     foreach ($tipos as $k => $n) $h .= '<label><input type="radio" name="tipo_compra" value="' . $k . '"' . ($tc === $k ? ' checked' : '') . '> ' . e($n) . '</label>';
     $h .= '</div></div>'
-        . '<div class="campo" style="grid-column:1/-1"><label>Trabajo realizado (para qué se necesita) · sale en el formato</label><input name="trabajo_realizado" required maxlength="255" value="' . e($s['trabajo_realizado'] ?? '') . '" placeholder="Ej. Cambio de cable del monitor de facturación"></div>'
+        . '<div class="campo" style="grid-column:1/-1"><label>Trabajo realizado (para qué se necesita)</label><input name="trabajo_realizado" required maxlength="255" value="' . e($s['trabajo_realizado'] ?? '') . '" placeholder="Ej. Cambio de cable del monitor de facturación"></div>'
         . '<div class="campo" style="grid-column:1/-1"><label>Artículos</label>' . form_lineas($cats, $lineas) . '</div>'
         . '<div class="campo"><label>Para quién (opcional)</label><select name="colaborador_id"><option value="">—</option>';
     foreach ($colabs as $c) $h .= '<option value="' . $c['id'] . '"' . ((int)($s['colaborador_id'] ?? 0) === (int)$c['id'] ? ' selected' : '') . '>' . e($c['nombre']) . '</option>';
     $h .= '</select></div><div class="campo"><label>Equipo (opcional)</label><input name="item" list="lista-equipos" value="' . e($s['item_etiqueta'] ?? '') . '" placeholder="Etiqueta, ej. AGR-0004"></div>'
         . '<div class="campo"><label>Urgencia</label><select name="urgencia"><option value="normal">Normal</option><option value="urgente"' . (($s['urgencia'] ?? '') === 'urgente' ? ' selected' : '') . '>Urgente</option></select></div>'
-        . '<div class="campo" style="grid-column:1/-1"><label>Nota para quien aprueba (opcional, no sale en el formato)</label><textarea name="motivo" rows="2" placeholder="Algo que Paolo o Carlos deban saber para aprobarla">' . e($s['motivo'] ?? '') . '</textarea></div>'
+        . '<div class="campo" style="grid-column:1/-1"><label>Nota para quien aprueba (opcional)</label><textarea name="motivo" rows="2" placeholder="Algo que Paolo o Carlos deban saber para aprobarla">' . e($s['motivo'] ?? '') . '</textarea></div>'
         . '</div>';
     return $h;
 }
@@ -441,7 +441,7 @@ require __DIR__ . '/inc/header.php';
     </form>
     <?php else: ?><div class="sol-paso"><b>Esperando aprobación.</b> Ya llegó el aviso; cuando la aprueben te llega a ti y aquí aparece el botón para imprimir.</div><?php endif; ?>
   <?php elseif ($ver['estado'] === 'aprobada' && $puede_pdf): ?>
-    <div class="sol-paso sol-paso-pdf"><b>Aprobada por <?= e($ver['aprobador']) ?>.</b> Imprime el formato y entrégalo a administración. <b>El PDF sale una sola vez:</b> ábrelo e imprímelo de una (hoja carta, usa el de arriba y recorta por la línea).
+    <div class="sol-paso sol-paso-pdf"><b>Aprobada por <?= e($ver['aprobador']) ?>.</b> Imprime el formato y entrégalo a administración. <b>El PDF sale una sola vez:</b> ábrelo e imprímelo de una (hoja carta: usa el de arriba y recorta por la línea). Sale en blanco con SISTEMAS y el código de autorización; el resto se llena a mano.
       <div style="margin-top:8px"><a class="btn btn-primario" href="?pdf=<?= $ver['id'] ?>" target="_blank" data-pdf-unico>🖨 Abrir PDF para imprimir</a></div></div>
   <?php elseif ($ver['estado'] === 'aprobada' && !$ver['impreso_en']): ?>
     <div class="sol-paso">Aprobada. Falta que <?= e($ver['solicitante']) ?> imprima el formato.</div>
