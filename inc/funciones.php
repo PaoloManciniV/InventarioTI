@@ -40,6 +40,35 @@ function requiere_admin() {
 // la marca no se puede poner desde la pantalla, solo por sql
 function gestiona_usuarios(): bool { return !empty(usuario()['gestiona']) && es_admin(); }
 
+// avisos por correo que se le pueden activar a cada usuario (Configuracion > Avisos por correo)
+// clave => [grupo, que es]. 'sol_solo_urgentes' no es un aviso: filtra los de solicitudes a solo las urgentes
+function avisos_catalogo() {
+    return [
+        'inv_cambios'       => ['Inventario', 'Equipos que se ingresan o cambian'],
+        'copias_reporte'    => ['Copias de seguridad', 'Cada copia que se reporta'],
+        'copias_atraso'     => ['Copias de seguridad', 'Cuando la copia está atrasada'],
+        'sol_radicada'      => ['Solicitudes a administración', 'Nueva solicitud por aprobar'],
+        'sol_aprobacion'    => ['Solicitudes a administración', 'Aprobada o rechazada'],
+        'sol_estado'        => ['Solicitudes a administración', 'Entregada, en compra, recibida o cancelada'],
+        'sol_atrasadas'     => ['Solicitudes a administración', 'Atrasadas (los lunes)'],
+        'sol_solo_urgentes' => ['Solicitudes a administración', 'De solicitudes, solo las urgentes'],
+    ];
+}
+
+// correos de los usuarios que tienen activado un aviso. $urgente: para solicitudes, si no es urgente
+// se dejan por fuera los que marcaron "solo las urgentes"
+function correos_aviso($clave, $urgente = null) {
+    try {
+        $sql = "SELECT DISTINCT u.email FROM avisos_usuarios a JOIN usuarios u ON u.id = a.usuario_id WHERE a.aviso = ? AND u.activo = 1 AND u.email <> ''";
+        if ($urgente === false) $sql .= " AND NOT EXISTS (SELECT 1 FROM avisos_usuarios f WHERE f.usuario_id = u.id AND f.aviso = 'sol_solo_urgentes')";
+        $st = db()->prepare($sql);
+        $st->execute([$clave]);
+        return $st->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Throwable $e) {
+        return []; // si aun no se corre el SQL 67
+    }
+}
+
 // permisos por modulo. clave => [nombre, solo admin]
 function modulos() {
     return [
@@ -170,7 +199,7 @@ function aviso_inventario($item_id, $cambios, $nota) {
 function enviar_aviso_inventario() {
     $cola = $GLOBALS['aviso_inv'] ?? [];
     if (!$cola) return;
-    $para = array_filter(array_map('trim', explode(',', env('MAIL_INVENTARIO', ''))));
+    $para = array_filter(array_merge(array_map('trim', explode(',', env('MAIL_INVENTARIO', ''))), correos_aviso('inv_cambios')));
     if (!$para || !correo_configurado()) return;
     // la pagina le responde primero al usuario y el correo sale despues, para no hacerlo esperar
     if (function_exists('fastcgi_finish_request')) { session_write_close(); fastcgi_finish_request(); }

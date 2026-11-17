@@ -16,7 +16,7 @@ $st = db()->prepare("SELECT valor FROM ajustes WHERE clave = 'copias_ultimo_avis
 $st->execute();
 if ($st->fetchColumn() === $hoy) { echo "Ya se aviso hoy\n"; exit; }
 
-$para = correos_copias();
+$para = array_values(array_unique(array_merge(correos_copias(), correos_aviso('copias_atraso'))));
 if (!$para || !correo_configurado()) { echo "Sin destinatarios (MAIL_RESPALDOS o MAIL_INVENTARIO) o sin correo configurado\n"; exit(1); }
 
 $txt = $ultima

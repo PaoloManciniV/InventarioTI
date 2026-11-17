@@ -254,6 +254,14 @@ CREATE TABLE IF NOT EXISTS solicitudes_eventos (
   KEY idx_solicitud (solicitud_id, creado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- avisos por correo que recibe cada usuario
+CREATE TABLE IF NOT EXISTS avisos_usuarios (
+  usuario_id INT NOT NULL,
+  aviso VARCHAR(40) NOT NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (usuario_id, aviso)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `ajustes` (
   `clave` varchar(60) NOT NULL,
   `valor` varchar(500) DEFAULT NULL,

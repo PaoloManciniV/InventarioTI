@@ -80,7 +80,7 @@ function revisar_carpetas(array $carpetas) {
 }
 
 function correo_copia($id) {
-    $para = correos_copias();
+    $para = array_values(array_unique(array_merge(correos_copias(), correos_aviso('copias_reporte'))));
     if (!$para || !correo_configurado()) return false;
     $st = db()->prepare('SELECT * FROM copias_seguridad WHERE id = ?');
     $st->execute([$id]);

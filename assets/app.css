@@ -612,3 +612,12 @@ body:has(.modal-fondo) { overflow: hidden; }
 .barra-llena { height: 100%; background: var(--cat); border-radius: 5px; min-width: 0; }
 .fila-dato { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--borde); font-size: 13.5px; }
 .fila-dato:last-child { border-bottom: 0; }
+
+/* configuracion: avisos por correo por persona */
+.tabla-avisos th.av-grupo { text-align: center; border-left: 1px solid var(--borde); }
+.tabla-avisos th.av-col { font-size: 10.5px; font-weight: 600; text-transform: none; letter-spacing: 0; text-align: center; max-width: 110px; white-space: normal; line-height: 1.25; vertical-align: bottom; }
+.tabla-avisos td.av-celda { text-align: center; }
+.tabla-avisos td.av-celda input { width: 17px; height: 17px; cursor: pointer; }
+.tabla-avisos .av-filtro { background: var(--cat-suave); }
+.tabla-avisos tr.av-fijos td { background: var(--tarjeta-2); text-align: center; }
+.tabla-avisos tr.av-fijos td:first-child { text-align: left; }

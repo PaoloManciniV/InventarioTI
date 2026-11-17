@@ -26,7 +26,7 @@ PHP sin framework, JavaScript puro y MySQL/MariaDB. Sin Composer ni build: se su
 | Copias de seguridad | Control de la copia desconectada al disco externo. Un script en el disco (`REPORTAR_COPIA.bat`, se descarga ya configurado desde el módulo) solo lee las carpetas: archivos, tamaño y fecha del más reciente. Pregunta quién hizo la copia y la reporta. Cada carpeta sale en verde o en rojo (vacía, falta, igual a la copia anterior o mucho más pequeña) y llega un correo. Si pasan más de `BACKUP_DIAS` sin copia, avisa (`copias_revisar.php` en el cron). También se puede registrar a mano con una captura |
 | Redes WiFi | Redes y claves cifradas (solo administradores) |
 | Importar Excel | Carga inicial desde .xlsx o .csv con vista previa |
-| Configuración | Usuarios y permisos por módulo, bodegas, áreas, categorías y registro de cambios |
+| Configuración | Usuarios y permisos por módulo, bodegas, áreas, categorías, registro de cambios y **avisos por correo por persona**: qué le llega a cada uno (inventario, copias de seguridad y cada paso de las solicitudes, con opción de solo las urgentes), además de los correos fijos del `.env` |
 | Avisos por correo | Cada vez que alguien ingresa o cambia un equipo desde la plataforma llega un correo con qué cambió (antes y ahora), quién y cuándo. Los destinatarios van en `MAIL_INVENTARIO` del `.env` |
 
 ## Instalar

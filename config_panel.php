@@ -5,8 +5,8 @@ requiere_admin();
 requiere_modulo('config');
 
 $tab = $_GET['tab'] ?? 'usuarios';
-// la pestana de usuarios (y su historial) solo la ven quienes gestionan usuarios; los demas ni saben que existe
-if (!gestiona_usuarios() && $tab === 'usuarios') $tab = 'sedes';
+// la pestana de usuarios (y su historial) y la de avisos solo la ven quienes gestionan usuarios; los demas ni saben que existe
+if (!gestiona_usuarios() && in_array($tab, ['usuarios', 'avisos'], true)) $tab = 'sedes';
 $pdo = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -22,9 +22,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ir('config_panel.php?tab=usuarios');
     }
 
-    if (in_array($a, ['usuario', 'usuario_activo', 'probar_correo'], true) && !gestiona_usuarios()) {
+    if (in_array($a, ['usuario', 'usuario_activo', 'probar_correo', 'avisos'], true) && !gestiona_usuarios()) {
         http_response_code(403);
         exit('No disponible');
+    }
+
+    // avisos por correo de cada usuario: se reemplaza todo lo marcado en la tabla
+    if ($a === 'avisos') {
+        $cat = avisos_catalogo();
+        $pdo->beginTransaction();
+        $pdo->exec('DELETE FROM avisos_usuarios');
+        $ins = $pdo->prepare('INSERT INTO avisos_usuarios (usuario_id, aviso) VALUES (?, ?)');
+        foreach ((array)($_POST['av'] ?? []) as $uid => $lista) {
+            foreach ((array)$lista as $clave) if (isset($cat[$clave])) $ins->execute([(int)$uid, $clave]);
+        }
+        $pdo->commit();
+        auditar('usuarios', 0, null, null, 'Cambió los avisos por correo');
+        flash('Avisos guardados');
+        ir('config_panel.php?tab=avisos');
     }
 
     // foto antes y despues para el historial de cambios
@@ -127,7 +142,7 @@ require __DIR__ . '/inc/header.php';
 <div class="cabecera"><h1>Configuracion</h1>
   <?php if ($tab_tabla): ?><div class="acciones"><?= boton_cambios(cambios_de_varios($tab_tabla[0], array_keys($nom_t), 10), $nom_t, 'config_panel.php?tab=' . $tab . '&ed=') ?></div><?php endif; ?></div>
 <div class="pildoras">
-  <?php foreach ((gestiona_usuarios() ? ['usuarios' => 'Usuarios y claves'] : []) + ['sedes' => 'Bodegas', 'areas' => 'Areas', 'categorias' => 'Categorias', 'cambios' => 'Registro de cambios'] as $k => $v): ?>
+  <?php foreach ((gestiona_usuarios() ? ['usuarios' => 'Usuarios y claves', 'avisos' => 'Avisos por correo'] : []) + ['sedes' => 'Bodegas', 'areas' => 'Areas', 'categorias' => 'Categorias', 'cambios' => 'Registro de cambios'] as $k => $v): ?>
     <a class="pildora <?= $tab === $k ? 'activa' : '' ?>" href="?tab=<?= $k ?>"><?= $v ?></a>
   <?php endforeach; ?>
 </div>
@@ -189,6 +204,38 @@ require __DIR__ . '/inc/header.php';
     <?php if (!$acc): ?><tr><td colspan="4" class="vacio">Sin registros todavía</td></tr><?php endif; ?>
     </tbody></table></div>
   </div>
+
+<?php elseif ($tab === 'avisos'):
+  $cat = avisos_catalogo();
+  $usuarios_av = $pdo->query("SELECT id, nombre, email, rol FROM usuarios WHERE activo = 1 ORDER BY nombre")->fetchAll();
+  $tiene = [];
+  $tabla_ok = true;
+  try { foreach ($pdo->query('SELECT usuario_id, aviso FROM avisos_usuarios') as $r) $tiene[(int)$r['usuario_id']][$r['aviso']] = true; }
+  catch (Throwable $e) { $tabla_ok = false; }
+  $grupos = [];
+  foreach ($cat as $k => [$g, $n]) $grupos[$g][$k] = $n;
+  $fijos = ['Inventario' => env('MAIL_INVENTARIO', ''), 'Copias de seguridad' => env('MAIL_RESPALDOS', '') ?: env('MAIL_INVENTARIO', ''), 'Solicitudes a administración' => env('MAIL_SOLICITUDES', '')]; ?>
+  <?php if (!$tabla_ok): ?><div class="aviso aviso-error">Falta correr <b>67_avisos_por_usuario.sql</b> en phpMyAdmin.</div><?php else: ?>
+  <p class="tenue" style="margin-top:0">Escoge qué avisos le llegan a cada persona. Así, por ejemplo, a alguien le pueden llegar los del inventario y no los de solicitudes. Además de lo que marques aquí, siempre les llegan a los correos fijos del <span class="mono">.env</span> (abajo de cada grupo).</p>
+  <form method="post"><?= csrf_campo() ?><input type="hidden" name="accion" value="avisos">
+  <div class="tabla-envoltura"><table class="tabla tabla-avisos">
+    <thead>
+      <tr><th rowspan="2">Persona</th><?php foreach ($grupos as $g => $l): ?><th colspan="<?= count($l) ?>" class="av-grupo"><?= e($g) ?></th><?php endforeach; ?></tr>
+      <tr><?php foreach ($grupos as $g => $l): foreach ($l as $k => $n): ?><th class="av-col<?= $k === 'sol_solo_urgentes' ? ' av-filtro' : '' ?>"><?= e($n) ?></th><?php endforeach; endforeach; ?></tr>
+    </thead><tbody>
+    <?php foreach ($usuarios_av as $u): ?>
+      <tr><td><b><?= e($u['nombre']) ?></b><small class="mono"><?= e($u['email']) ?></small></td>
+        <?php foreach ($grupos as $g => $l): foreach ($l as $k => $n): ?>
+          <td class="av-celda<?= $k === 'sol_solo_urgentes' ? ' av-filtro' : '' ?>"><input type="checkbox" name="av[<?= $u['id'] ?>][]" value="<?= $k ?>" title="<?= e($g . ': ' . $n) ?>"<?= isset($tiene[(int)$u['id']][$k]) ? ' checked' : '' ?>></td>
+        <?php endforeach; endforeach; ?></tr>
+    <?php endforeach; ?>
+    <tr class="av-fijos"><td><small>Siempre (correos fijos del .env)</small></td>
+      <?php foreach ($grupos as $g => $l): ?><td colspan="<?= count($l) ?>"><small class="mono"><?= e($fijos[$g] ?: '—') ?></small></td><?php endforeach; ?></tr>
+    </tbody></table></div>
+  <p class="tenue" style="font-size:12px">“De solicitudes, solo las urgentes”: si se marca, de los avisos de solicitudes que tenga activados solo le llegan los de solicitudes urgentes. Las tareas no están aquí: esas le llegan a cada quien según le pongan, le transfieran o cumplan una tarea.</p>
+  <p><button class="btn btn-primario">Guardar avisos</button></p>
+  </form>
+  <?php endif; ?>
 
 <?php elseif ($tab === 'cambios'):
   $q = trim($_GET['q'] ?? '');

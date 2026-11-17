@@ -78,12 +78,10 @@ function dias_solicitud($s) {
     return max(0, (int)floor(($fin - strtotime($s['fecha'])) / 86400));
 }
 
-// a quien le llegan los avisos de solicitudes: solo los correos de MAIL_SOLICITUDES en el .env
-// (si esta vacio, a quienes aprueban). No usa MAIL_INVENTARIO
+// correos fijos de los avisos de solicitudes: MAIL_SOLICITUDES en el .env (no usa MAIL_INVENTARIO).
+// A esto se suman los usuarios que tengan el aviso activado en Configuracion > Avisos por correo
 function correos_solicitudes() {
-    $l = trim((string)env('MAIL_SOLICITUDES', ''));
-    if ($l === '') return array_values(array_filter(array_column(aprobadores_solicitud(), 'email')));
-    return array_values(array_unique(array_filter(array_map('trim', explode(',', $l)))));
+    return array_values(array_unique(array_filter(array_map('trim', explode(',', (string)env('MAIL_SOLICITUDES', ''))))));
 }
 
 function pesos_sol($v) { return $v === null || $v === '' ? '' : '$' . number_format((float)$v, 0, ',', '.'); }
@@ -106,8 +104,13 @@ function correo_solicitud($id, $evento, $extra = '', $quien = 'Sistemas') {
     if (!correo_configurado()) return false;
     $s = solicitud($id);
     if (!$s) return false;
-    // a quien le llega cada aviso: la lista de MAIL_SOLICITUDES y, cuando le toca, a quien la radico
-    $para = $evento === 'radicada' ? correos_solicitudes() : array_merge(correos_solicitudes(), [$s['solicitante_email']]);
+    // a quien le llega cada aviso: la lista de MAIL_SOLICITUDES, los usuarios que tienen ese aviso activado
+    // en Configuracion (si marcaron "solo urgentes", solo las urgentes) y, cuando le toca, a quien la radico
+    $clave = ['radicada' => 'sol_radicada', 'aprobada' => 'sol_aprobacion', 'rechazada' => 'sol_aprobacion'][$evento] ?? 'sol_estado';
+    $para = array_merge(correos_solicitudes(), correos_aviso($clave, $s['urgencia'] === 'urgente'));
+    // que una solicitud por aprobar nunca se quede sin aviso: si nadie esta configurado, a quienes aprueban
+    if ($evento === 'radicada' && !array_filter($para)) $para = array_column(aprobadores_solicitud(), 'email');
+    if ($evento !== 'radicada') $para[] = $s['solicitante_email'];
     $para = array_values(array_unique(array_filter($para)));
     if (!$para) return false;
     $est = estados_solicitud();
@@ -152,7 +155,7 @@ function correo_solicitud($id, $evento, $extra = '', $quien = 'Sistemas') {
 // lunes: las entregadas a administracion que llevan muchos dias sin recibirse (SOLICITUDES_DIAS_ALERTA, por defecto 8)
 function aviso_solicitudes_atrasadas() {
     $dias = max(1, (int)env('SOLICITUDES_DIAS_ALERTA', 8));
-    $para = correos_solicitudes();
+    $para = array_values(array_unique(array_merge(correos_solicitudes(), correos_aviso('sol_atrasadas'))));
     if (!$para || !correo_configurado()) return 0;
     $st = db()->prepare(sql_solicitudes() . " WHERE s.estado IN ('por_aprobar','aprobada','pendiente','en_compra') AND s.fecha <= CURDATE() - INTERVAL ? DAY AND (s.aviso_atraso IS NULL OR s.aviso_atraso < CURDATE()) ORDER BY s.fecha");
     $st->execute([$dias]);
