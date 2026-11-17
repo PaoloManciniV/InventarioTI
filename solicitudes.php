@@ -239,7 +239,7 @@ if (($_GET['formato'] ?? '') === 'xlsx') {
 
 // ---------- datos de la vista ----------
 $vista = ($_GET['vista'] ?? '') === 'resumen' ? 'resumen' : 'lista';
-$filtro = $_GET['estado'] ?? 'abiertas';
+$filtro = $_GET['estado'] ?? 'todas';
 $q = trim($_GET['q'] ?? '');
 $colabs = db()->query('SELECT id, nombre FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll();
 $equipos = db()->query("SELECT etiqueta, nombre FROM items WHERE etiqueta IS NOT NULL AND etiqueta <> '' ORDER BY etiqueta LIMIT 3000")->fetchAll();
@@ -312,13 +312,14 @@ require __DIR__ . '/inc/header.php';
   elseif (isset($est[$filtro])) { $where[] = 's.estado = ?'; $args[] = $filtro; }
   if (!in_array($filtro, ['abiertas', 'por_aprobar', 'aprobada'], true)) { $where[] = 'YEAR(s.fecha) = ?'; $args[] = $anio; }
   if ($q !== '') { $where[] = '(EXISTS (SELECT 1 FROM solicitudes_lineas l WHERE l.solicitud_id = s.id AND (l.descripcion LIKE ? OR l.categoria LIKE ? OR l.especificaciones LIKE ?)) OR s.trabajo_realizado LIKE ? OR c.nombre LIKE ? OR i.etiqueta LIKE ? OR s.token = ?)'; array_push($args, ...array_fill(0, 6, '%' . $q . '%')); $args[] = strtoupper($q); }
-  $st = db()->prepare(sql_solicitudes() . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY s.estado = 'por_aprobar' DESC, s.fecha DESC, s.id DESC LIMIT 500");
+  // primero las que esperan aprobacion, luego las demas abiertas y al final las cerradas (recibidas, rechazadas, canceladas)
+  $st = db()->prepare(sql_solicitudes() . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY s.estado = 'por_aprobar' DESC, s.estado IN ('aprobada','pendiente','en_compra') DESC, s.fecha DESC, s.id DESC LIMIT 500");
   $st->execute($args);
   $lista = $st->fetchAll(); ?>
   <form class="filtros" method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <select name="estado" onchange="this.form.submit()">
-      <option value="abiertas"<?= $filtro === 'abiertas' ? ' selected' : '' ?>>Abiertas</option>
       <option value="todas"<?= $filtro === 'todas' ? ' selected' : '' ?>>Todas</option>
+      <option value="abiertas"<?= $filtro === 'abiertas' ? ' selected' : '' ?>>Solo abiertas</option>
       <?php foreach ($est as $k => [$n]): ?><option value="<?= $k ?>"<?= $filtro === $k ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?>
     </select>
     <?php if (!in_array($filtro, ['abiertas', 'por_aprobar', 'aprobada'], true)): ?><select name="anio" onchange="this.form.submit()"><?php foreach ($anios as $a): ?><option<?= (int)$a === $anio ? ' selected' : '' ?>><?= (int)$a ?></option><?php endforeach; ?></select><?php endif; ?>
@@ -327,7 +328,7 @@ require __DIR__ . '/inc/header.php';
   </form>
   <div class="tabla-envoltura"><table class="tabla">
     <thead><tr><th>Solicitud</th><th>Qué se pidió</th><th>Gestión</th><th>Estado</th><th style="text-align:right">Días</th></tr></thead><tbody>
-    <?php if (!$lista): ?><tr><td colspan="5" class="vacio"><?= $filtro === 'abiertas' ? 'No hay solicitudes abiertas.' : 'No hay solicitudes con ese filtro.' ?></td></tr><?php endif; ?>
+    <?php if (!$lista): ?><tr><td colspan="5" class="vacio"><?= $filtro === 'abiertas' ? 'No hay solicitudes abiertas.' : ($filtro === 'todas' && $q === '' ? 'Todavía no hay solicitudes en ' . $anio . '.' : 'No hay solicitudes con ese filtro.') ?></td></tr><?php endif; ?>
     <?php foreach ($lista as $s): $d = dias_solicitud($s); $abierta = in_array($s['estado'], estados_abiertos(), true); ?>
       <tr><td><a href="?ver=<?= $s['id'] ?>" class="mono"><b><?= codigo_solicitud($s) ?></b></a><?= $s['urgencia'] === 'urgente' ? ' <span class="chip chip-danado">Urgente</span>' : '' ?><small><?= fecha_corta($s['fecha']) ?> · <?= e($tipos[$s['tipo_compra']] ?? '') ?></small></td>
         <td><?= e($s['resumen']) ?><?= $s['trabajo_realizado'] ? '<small>' . e(mb_strimwidth($s['trabajo_realizado'], 0, 90, '…')) . '</small>' : '' ?></td>
