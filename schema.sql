@@ -90,6 +90,115 @@ CREATE TABLE IF NOT EXISTS `copias_seguridad` (
   KEY `idx_ip_creado` (`ip`,`creado`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- tareas del equipo de sistemas
+CREATE TABLE IF NOT EXISTS tareas_tipos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  categoria VARCHAR(80) NOT NULL,
+  nombre VARCHAR(150) NOT NULL,
+  orden INT NOT NULL DEFAULT 0,
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_tipo (categoria, nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT IGNORE INTO tareas_tipos (categoria, nombre, orden) VALUES
+('Soporte a usuarios','Soporte en sitio a un usuario',10),
+('Soporte a usuarios','Soporte remoto a un usuario',20),
+('Soporte a usuarios','Restablecer contraseña o desbloquear cuenta',30),
+('Soporte a usuarios','Configurar correo (Zoho / Outlook)',40),
+('Soporte a usuarios','Instalar o actualizar un programa',50),
+('Soporte a usuarios','Office y licencias',60),
+('Soporte a usuarios','Falla de internet o red de un usuario',70),
+('Equipos','Alistar equipo nuevo (formateo e instalación)',80),
+('Equipos','Formatear o reinstalar Windows',90),
+('Equipos','Mantenimiento preventivo',100),
+('Equipos','Mantenimiento correctivo o reparación',110),
+('Equipos','Entregar equipo con acta',120),
+('Equipos','Recoger equipo (devolución o retiro)',130),
+('Equipos','Revisar equipo dañado',140),
+('Equipos','Cambiar periférico (mouse, teclado, monitor)',150),
+('Equipos','Actualizar el inventario TI',160),
+('Impresoras','Cambio de tóner',170),
+('Impresoras','Atasco o falla de impresión',180),
+('Impresoras','Instalar impresora en un PC',190),
+('Impresoras','Mandar impresora a reparar',200),
+('Impresoras','Impresora Zebra o etiquetas',210),
+('Telefonía','Configurar teléfono IP o extensión',220),
+('Telefonía','Configurar MicroSIP',230),
+('Telefonía','Revisar la PBX o troncales',240),
+('Telefonía','Falla de llamadas',250),
+('Red e infraestructura','Revisar internet o proveedor',260),
+('Red e infraestructura','Access point o WiFi',270),
+('Red e infraestructura','Switch o cableado',280),
+('Red e infraestructura','Asignar o revisar una IP',290),
+('Red e infraestructura','Cámaras o DVR',300),
+('Red e infraestructura','Revisar servidor',310),
+('Traverse y sistemas internos','Soporte en Traverse (ERP)',320),
+('Traverse y sistemas internos','Usuarios y permisos en Traverse',330),
+('Traverse y sistemas internos','Consulta o reporte en SQL',340),
+('Traverse y sistemas internos','Error en un sistema interno (web)',350),
+('Traverse y sistemas internos','Desarrollo o mejora de un sistema interno',360),
+('Traverse y sistemas internos','Automatización (n8n)',370),
+('Traverse y sistemas internos','Página web (WordPress)',380),
+('Respaldo y seguridad','Copia de seguridad al disco externo',390),
+('Respaldo y seguridad','Antivirus o amenaza',400),
+('Respaldo y seguridad','Correo sospechoso (phishing)',410),
+('Respaldo y seguridad','Ingreso de personal: crear accesos',420),
+('Respaldo y seguridad','Retiro de personal: quitar accesos',430),
+('Compras y administrativo','Cotizar o comprar equipos o insumos',440),
+('Compras y administrativo','Seguimiento a proveedor o garantía',450),
+('Compras y administrativo','Reunión o capacitación',460),
+('Compras y administrativo','Documentar un procedimiento',470),
+('Compras y administrativo','Otra (explicar en la observación)',480);
+
+CREATE TABLE IF NOT EXISTS tareas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tipo_id INT NULL,
+  titulo VARCHAR(200) NOT NULL COMMENT 'nombre del tipo al crearla',
+  detalle TEXT NULL COMMENT 'observacion',
+  colaborador_id INT NULL,
+  item_id INT NULL,
+  creado_por INT NOT NULL,
+  para_id INT NULL COMMENT 'NULL = todo el grupo',
+  privada TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = solo la ve quien la creo',
+  vence DATETIME NULL,
+  con_hora TINYINT(1) NOT NULL DEFAULT 0,
+  prioridad ENUM('normal','alta') NOT NULL DEFAULT 'normal',
+  hecha TINYINT(1) NOT NULL DEFAULT 0,
+  hecha_por INT NULL,
+  hecha_en DATETIME NULL,
+  aviso_vencida DATETIME NULL,
+  ultimo_recordatorio DATETIME NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado DATETIME NULL,
+  KEY idx_pendientes (hecha, vence),
+  KEY idx_para (para_id),
+  KEY idx_creado_por (creado_por),
+  KEY idx_tipo (tipo_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- notas del caso: lo que cada uno fue haciendo, transferencias y cambios (para saber hasta donde llego el otro)
+CREATE TABLE IF NOT EXISTS tareas_notas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tarea_id INT NOT NULL,
+  usuario_id INT NULL,
+  tipo ENUM('nota','transferencia','evento') NOT NULL DEFAULT 'nota',
+  texto TEXT NOT NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_tarea (tarea_id, creado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- bloc de notas personal (stickies): solo los ve su dueño
+CREATE TABLE IF NOT EXISTS notas_personales (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  texto TEXT NULL,
+  color VARCHAR(10) NOT NULL DEFAULT 'amarillo',
+  fijada TINYINT(1) NOT NULL DEFAULT 0,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado DATETIME NULL,
+  KEY idx_usuario (usuario_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `ajustes` (
   `clave` varchar(60) NOT NULL,
   `valor` varchar(500) DEFAULT NULL,

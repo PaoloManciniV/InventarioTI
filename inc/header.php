@@ -8,6 +8,7 @@ $menu = $menu ?? '';
 $enlaces = [
     'inicio' => ['index.php', 'Vista general', '&#9638;'],
     'firma' => ['firma.php', 'Firmar', '&#9997;'],
+    'tareas' => ['tareas.php', 'Tareas', '&#9745;'],
     'items' => ['items.php', 'Inventario', '&#9635;'],
     'colaboradores' => ['colaboradores.php', 'Colaboradores', '&#9786;'],
     'actas' => ['actas.php', 'Actas', '&#9998;'],
@@ -40,7 +41,7 @@ $puede_entregar = es_admin() && puede('actas');
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=29">
+<link rel="stylesheet" href="assets/app.css?v=30">
 </head>
 <body>
 <div class="app">
@@ -51,7 +52,8 @@ $puede_entregar = es_admin() && puede('actas');
       <?php foreach ($enlaces as $k => [$href, $txt, $ico]): ?>
         <a href="<?= $href ?>" class="<?= $menu === $k ? 'activo' : '' ?>"><span class="ico"><?= $ico ?></span><?= $txt ?>
           <?php if (($k === 'actas' || $k === 'firma') && $pend): ?><span class="badge"><?= $pend ?></span><?php endif; ?>
-          <?php if ($k === 'mant' && ($venc = mant_vencidos_total())): ?><span class="badge"><?= $venc ?></span><?php endif; ?></a>
+          <?php if ($k === 'mant' && ($venc = mant_vencidos_total())): ?><span class="badge"><?= $venc ?></span><?php endif; ?>
+          <?php if ($k === 'tareas') { require_once __DIR__ . '/tareas.php'; if ($nt = tareas_urgentes((int)$u['id'])) echo '<span class="badge" title="Vencidas o para hoy">' . $nt . '</span>'; } ?></a>
       <?php endforeach; ?>
     </nav>
     <div class="lateral-pie">

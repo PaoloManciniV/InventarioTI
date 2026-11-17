@@ -44,6 +44,7 @@ function gestiona_usuarios(): bool { return !empty(usuario()['gestiona']) && es_
 function modulos() {
     return [
         'inicio' => ['Vista general', false],
+        'tareas' => ['Tareas del equipo', true],
         'items' => ['Inventario', false],
         'colaboradores' => ['Colaboradores', false],
         'actas' => ['Actas y firmas', false],
@@ -79,7 +80,7 @@ function puede(string $m): bool {
 function primer_modulo(): ?string {
     $pag = ['inicio' => 'index.php', 'items' => 'items.php', 'colaboradores' => 'colaboradores.php', 'actas' => 'actas.php', 'mant' => 'mantenimientos.php',
         'red' => 'red.php', 'impresoras' => 'impresoras.php', 'informe' => 'informe.php', 'herramientas' => 'herramientas.php', 'contactos' => 'herramientas.php?ver=contactos',
-        'copias' => 'copias.php', 'wifi' => 'wifi.php', 'importar' => 'importar.php', 'config' => 'config_panel.php'];
+        'copias' => 'copias.php', 'tareas' => 'tareas.php', 'wifi' => 'wifi.php', 'importar' => 'importar.php', 'config' => 'config_panel.php'];
     foreach ($pag as $m => $url) if (puede($m)) return $url;
     return null;
 }

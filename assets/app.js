@@ -322,3 +322,46 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }, true);
 })();
+
+/* tareas: marcar como hecha sin recargar la pagina */
+(function () {
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (!f.classList || !f.classList.contains('tarea-check')) return;
+    e.preventDefault();
+    var fila = f.closest('.tarea'), btn = f.querySelector('.check'), val = f.querySelector('[name=valor]');
+    btn.disabled = true;
+    fetch(location.pathname, { method: 'POST', body: new FormData(f), headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (!d.ok) { alert(d.msg || 'No se pudo'); return; }
+        var hecha = val.value === '1';
+        fila.classList.toggle('hecha', hecha);
+        if (hecha) fila.classList.remove('vencida');
+        val.value = hecha ? '0' : '1';
+        btn.title = btn.ariaLabel = hecha ? 'Reabrir' : 'Marcar como hecha';
+      })
+      .catch(function () { btn.disabled = false; f.submit(); });
+  });
+})();
+
+/* bloc de notas personal: se guarda solo mientras se escribe */
+(function () {
+  document.querySelectorAll('form[data-autoguardar]').forEach(function (f) {
+    var ta = f.querySelector('textarea'), est = f.parentNode.querySelector('.sticky-estado'), tm = null, ultimo = ta.value;
+    function guardar() {
+      if (ta.value === ultimo) return;
+      var enviado = ta.value;
+      if (est) est.textContent = 'Guardando…';
+      fetch(location.pathname, { method: 'POST', body: new FormData(f), headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (d.ok) { ultimo = enviado; if (est) est.textContent = 'Guardada'; } else if (est) est.textContent = 'No se guardó'; })
+        .catch(function () { if (est) est.textContent = 'Sin conexión: no se guardó'; });
+    }
+    ta.addEventListener('input', function () { clearTimeout(tm); if (est) est.textContent = '…'; tm = setTimeout(guardar, 800); });
+    ta.addEventListener('blur', function () { clearTimeout(tm); guardar(); });
+    f.addEventListener('submit', function (e) { e.preventDefault(); guardar(); });
+    window.addEventListener('beforeunload', function (e) { if (ta.value !== ultimo) { guardar(); e.preventDefault(); e.returnValue = ''; } });
+  });
+})();
