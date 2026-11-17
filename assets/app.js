@@ -429,3 +429,43 @@ document.addEventListener('click', function (e) {
   a.classList.add('btn-borde'); a.classList.remove('btn-primario');
   setTimeout(function () { location.reload(); }, 3000);
 });
+
+/* si hay una ventana emergente abierta, el aviso (ok o error) tambien sale adentro, arriba: si no, queda tapado */
+(function () {
+  var caja = document.querySelector('.modal-fondo .modal-caja'), f = document.querySelector('[data-flash]');
+  if (!caja || !f) return;
+  var c = f.cloneNode(true);
+  c.removeAttribute('data-flash');
+  c.style.margin = '0 0 12px';
+  var x = caja.querySelector('.modal-x');
+  caja.insertBefore(c, x ? x.nextSibling : caja.firstChild);
+})();
+
+/* las ventanas emergentes se pueden mover arrastrándolas desde el título */
+(function () {
+  var caja = document.querySelector('.modal-fondo .modal-caja');
+  if (!caja) return;
+  var agarre = caja.querySelector('h2') || caja;
+  agarre.classList.add('modal-agarre');
+  agarre.title = 'Arrastra para mover la ventana';
+  var dx = 0, dy = 0, x0 = 0, y0 = 0, mov = false;
+  function ini(e) {
+    if (e.target.closest('a, button, input, select, textarea, label')) return;
+    var p = e.touches ? e.touches[0] : e;
+    mov = true; x0 = p.clientX - dx; y0 = p.clientY - dy;
+    e.preventDefault();
+  }
+  function mover(e) {
+    if (!mov) return;
+    var p = e.touches ? e.touches[0] : e;
+    dx = p.clientX - x0; dy = p.clientY - y0;
+    caja.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  }
+  function fin() { mov = false; }
+  agarre.addEventListener('mousedown', ini);
+  agarre.addEventListener('touchstart', ini, { passive: false });
+  document.addEventListener('mousemove', mover);
+  document.addEventListener('touchmove', mover, { passive: true });
+  document.addEventListener('mouseup', fin);
+  document.addEventListener('touchend', fin);
+})();

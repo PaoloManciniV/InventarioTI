@@ -111,7 +111,7 @@ if ($instalado && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=34">
+<link rel="stylesheet" href="assets/app.css?v=35">
 <style>
   body { display: grid; place-items: center; min-height: 100vh; padding: 16px; }
   .caja { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 6px; width: 100%; max-width: 400px; overflow: hidden; }
@@ -146,6 +146,6 @@ if ($instalado && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
   <div class="pie"><a href="login.php">← Volver a ingresar</a><?php if ($paso === 2): ?><a href="recuperar.php?otro=1">Pedir otro código</a><?php endif; ?></div>
 </form></div>
-<script src="assets/app.js?v=15"></script>
+<script src="assets/app.js?v=16"></script>
 </body>
 </html>

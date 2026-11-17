@@ -42,7 +42,7 @@ $puede_entregar = es_admin() && puede('actas');
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=34">
+<link rel="stylesheet" href="assets/app.css?v=35">
 </head>
 <body>
 <div class="app">
@@ -77,7 +77,7 @@ $puede_entregar = es_admin() && puede('actas');
     </header>
     <?php if ($puede_entregar && $menu !== 'firma'): ?><a class="fab-firmar" href="firma.php">&#9997; Firmar<?= $pend ? ' <b>' . $pend . '</b>' : '' ?></a><?php endif; ?>
     <main class="contenido">
-    <?php if ($f = flash()): ?><div class="aviso aviso-<?= e($f[1]) ?>"><?= e($f[0]) ?></div><?php endif; ?>
+    <?php if ($f = flash()): ?><div class="aviso aviso-<?= e($f[1]) ?>" data-flash><?= e($f[0]) ?></div><?php endif; ?>
     <?php // en la vista general: aviso si la copia de seguridad esta atrasada
     if ($menu === 'inicio' && puede('copias')) {
         try {

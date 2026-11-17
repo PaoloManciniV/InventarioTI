@@ -621,3 +621,5 @@ body:has(.modal-fondo) { overflow: hidden; }
 .tabla-avisos .av-filtro { background: var(--cat-suave); }
 .tabla-avisos tr.av-fijos td { background: var(--tarjeta-2); text-align: center; }
 .tabla-avisos tr.av-fijos td:first-child { text-align: left; }
+.modal-agarre { cursor: move; user-select: none; }
+.modal-caja { animation-fill-mode: none; }
