@@ -220,7 +220,7 @@ require __DIR__ . '/inc/header.php';
   <div class="rejilla">
     <div class="campo"><label>Categoria</label><select name="categoria_id"><?= opciones(categorias(), $item['categoria_id'] ?? (int)($_GET['cat'] ?? 0) ?: '', 'nombre', 'Sin categoria') ?></select></div>
     <div class="campo"><label>Etiqueta (vacio = automatica)</label><input name="etiqueta" value="<?= e($item['etiqueta'] ?? '') ?>" placeholder="PC-0001"></div>
-    <div class="campo"><label>Nombre *</label><input name="nombre" required value="<?= e($item['nombre'] ?? '') ?>" placeholder="Portatil contabilidad"></div>
+    <div class="campo"><label>Nombre *</label><input name="nombre" required value="<?= e($item['nombre'] ?? ($_GET['nombre'] ?? '')) ?>" placeholder="Portatil contabilidad"></div>
     <div class="campo"><label>Marca</label><input name="marca" value="<?= e($item['marca'] ?? '') ?>"></div>
     <div class="campo"><label>Modelo</label><input name="modelo" value="<?= e($item['modelo'] ?? '') ?>"></div>
     <div class="campo"><label>Serial</label><input name="serial" value="<?= e($item['serial'] ?? '') ?>"></div>

@@ -4,7 +4,7 @@
 require __DIR__ . '/config.php';
 
 $f = $_GET['f'] ?? '';
-if (!preg_match('#^(firmas|actas|items|reparaciones|copias)/[A-Za-z0-9_.-]+$#', $f) || strpos($f, '..') !== false) { http_response_code(404); exit; }
+if (!preg_match('#^(firmas|actas|items|reparaciones|copias|solicitudes)/[A-Za-z0-9_.-]+$#', $f) || strpos($f, '..') !== false) { http_response_code(404); exit; }
 
 if (!usuario()) {
     $tok = $_GET['t'] ?? '';

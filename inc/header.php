@@ -9,6 +9,7 @@ $enlaces = [
     'inicio' => ['index.php', 'Vista general', '&#9638;'],
     'firma' => ['firma.php', 'Firmar', '&#9997;'],
     'tareas' => ['tareas.php', 'Tareas', '&#9745;'],
+    'solicitudes' => ['solicitudes.php', 'Solicitudes', '&#128203;'],
     'items' => ['items.php', 'Inventario', '&#9635;'],
     'colaboradores' => ['colaboradores.php', 'Colaboradores', '&#9786;'],
     'actas' => ['actas.php', 'Actas', '&#9998;'],
@@ -41,7 +42,7 @@ $puede_entregar = es_admin() && puede('actas');
 <script>try{if(localStorage.getItem("tema")==="claro")document.documentElement.setAttribute("data-tema","claro")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/app.css?v=31">
+<link rel="stylesheet" href="assets/app.css?v=32">
 </head>
 <body>
 <div class="app">
@@ -53,6 +54,7 @@ $puede_entregar = es_admin() && puede('actas');
         <a href="<?= $href ?>" class="<?= $menu === $k ? 'activo' : '' ?>"><span class="ico"><?= $ico ?></span><?= $txt ?>
           <?php if (($k === 'actas' || $k === 'firma') && $pend): ?><span class="badge"><?= $pend ?></span><?php endif; ?>
           <?php if ($k === 'mant' && ($venc = mant_vencidos_total())): ?><span class="badge"><?= $venc ?></span><?php endif; ?>
+          <?php if ($k === 'solicitudes') { try { if ($ns = (int)db()->query("SELECT COUNT(*) FROM solicitudes WHERE estado IN ('pendiente','en_compra')")->fetchColumn()) echo '<span class="badge" title="Abiertas (sin recibir)">' . $ns . '</span>'; } catch (Throwable $e) { } } ?>
           <?php if ($k === 'tareas') { require_once __DIR__ . '/tareas.php'; if ($nt = tareas_urgentes((int)$u['id'])) echo '<span class="badge" title="Vencidas o para hoy">' . $nt . '</span>'; } ?></a>
       <?php endforeach; ?>
     </nav>

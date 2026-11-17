@@ -60,3 +60,9 @@ foreach (miembros_tareas() as $uid => $m) {
     if (enviar_correo([$m['email']], $m['nombre'], '☀️ Tus tareas de hoy' . ($total ? ' · ' . $total . ' para hoy o vencidas' : ''), $html)) $enviados++;
 }
 echo "Resumenes enviados: $enviados\n";
+
+// los lunes: solicitudes a administracion que llevan muchos dias sin recibirse
+if (date('N') === '1' && is_file(__DIR__ . '/inc/solicitudes.php')) {
+    require_once __DIR__ . '/inc/solicitudes.php';
+    try { echo 'Solicitudes atrasadas avisadas: ' . aviso_solicitudes_atrasadas() . "\n"; } catch (Throwable $e) { echo 'Solicitudes: ' . $e->getMessage() . "\n"; }
+}

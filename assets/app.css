@@ -580,3 +580,20 @@ body:has(.modal-fondo) { overflow: hidden; }
 .sticky-nueva button { background: none; border: 0; color: var(--tenue); font-size: 15px; cursor: pointer; width: 100%; height: 100%; }
 .sticky-nueva:hover { border-color: var(--cat); }
 .sticky-nueva:hover button { color: var(--cat); }
+
+/* solicitudes a administracion */
+.sol-lineas { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.sol-linea { display: flex; gap: 6px; align-items: center; }
+.sol-linea input[type=number] { flex: 0 0 72px; }
+.sol-linea input[data-desc] { flex: 2 1 200px; min-width: 0; }
+.sol-linea select { flex: 1 1 160px; min-width: 0; }
+.barras { display: flex; flex-direction: column; gap: 5px; }
+.barra-fila { display: grid; grid-template-columns: 38px 1fr 30px; gap: 8px; align-items: center; font-size: 12.5px; }
+.barra-fila.barra-ancha { grid-template-columns: minmax(90px, 42%) 1fr 30px; }
+.barra-fila span { color: var(--tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-fila b { font-family: var(--mono); text-align: right; }
+.barra-pista { height: 10px; background: var(--tarjeta-2); border-radius: 5px; overflow: hidden; }
+.barra-llena { height: 100%; background: var(--cat); border-radius: 5px; min-width: 0; }
+.fila-dato { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--borde); font-size: 13.5px; }
+.fila-dato:last-child { border-bottom: 0; }
+@media (max-width: 700px) { .sol-linea { flex-wrap: wrap; } .sol-linea input[data-desc] { flex: 1 1 calc(100% - 80px); } }

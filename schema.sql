@@ -201,6 +201,48 @@ CREATE TABLE IF NOT EXISTS notas_personales (
   KEY idx_usuario (usuario_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- solicitudes a administracion
+CREATE TABLE IF NOT EXISTS solicitudes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fecha DATE NOT NULL COMMENT 'cuando se le entrego el formato a la administradora',
+  solicitado_por INT NOT NULL,
+  motivo TEXT NULL,
+  urgencia ENUM('normal','urgente') NOT NULL DEFAULT 'normal',
+  colaborador_id INT NULL COMMENT 'para quien es (opcional)',
+  item_id INT NULL COMMENT 'equipo relacionado (opcional)',
+  estado ENUM('pendiente','en_compra','recibida','rechazada','cancelada') NOT NULL DEFAULT 'pendiente',
+  fecha_estado DATETIME NULL,
+  fecha_recibida DATE NULL,
+  costo_total DECIMAL(14,2) NULL,
+  formato_archivo VARCHAR(255) NULL COMMENT 'foto o escaneo del formato en papel',
+  factura_archivo VARCHAR(255) NULL,
+  aviso_atraso DATE NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado DATETIME NULL,
+  KEY idx_estado (estado, fecha),
+  KEY idx_fecha (fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS solicitudes_lineas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  solicitud_id INT NOT NULL,
+  categoria VARCHAR(60) NOT NULL,
+  descripcion VARCHAR(200) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 1,
+  KEY idx_solicitud (solicitud_id),
+  KEY idx_desc (descripcion)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- lo que fue pasando con cada solicitud (creada, cambio de estado, notas)
+CREATE TABLE IF NOT EXISTS solicitudes_eventos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  solicitud_id INT NOT NULL,
+  usuario_id INT NULL,
+  texto TEXT NOT NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_solicitud (solicitud_id, creado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `ajustes` (
   `clave` varchar(60) NOT NULL,
   `valor` varchar(500) DEFAULT NULL,

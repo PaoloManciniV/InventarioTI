@@ -389,3 +389,30 @@ document.addEventListener('DOMContentLoaded', function () {
   notas.forEach(function (n) { ro.observe(n); });
   setTimeout(function () { listo = true; }, 300);
 })();
+
+/* solicitudes: agregar o quitar lineas y poner la categoria sola si ya se habia pedido antes */
+(function () {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-agregar-linea]');
+    if (b) {
+      var cont = b.parentNode.querySelector('[data-lineas]'), ult = cont.lastElementChild, n = ult.cloneNode(true);
+      n.querySelectorAll('input').forEach(function (i) { i.value = i.type === 'number' ? 1 : ''; });
+      n.querySelector('select').selectedIndex = 0;
+      cont.appendChild(n); n.querySelector('[data-desc]').focus();
+      return;
+    }
+    var q = e.target.closest('[data-quitar-linea]');
+    if (q) {
+      var c = q.closest('[data-lineas]');
+      if (c.children.length > 1) q.closest('.sol-linea').remove();
+      else q.closest('.sol-linea').querySelectorAll('input[data-desc]').forEach(function (i) { i.value = ''; });
+    }
+  });
+  document.addEventListener('change', function (e) {
+    var i = e.target;
+    if (!i.matches || !i.matches('[data-desc]')) return;
+    var op = document.querySelector('#lista-descs option[value="' + CSS.escape(i.value) + '"]');
+    var sel = i.closest('.sol-linea').querySelector('select');
+    if (op && op.dataset.cat && sel && !sel.value) sel.value = op.dataset.cat;
+  });
+})();

@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $login = strtolower(trim($_POST['usuario'] ?? ''));
         // modulos marcados; todos marcados = NULL (tambien recibe los modulos nuevos que se agreguen despues)
         $mods = array_values(array_intersect(array_keys(modulos()), (array)($_POST['mods'] ?? [])));
-        if (!in_array('tareas', $mods, true)) $mods[] = 'tareas';
+        foreach (['tareas', 'solicitudes'] as $siempre) if (!in_array($siempre, $mods, true)) $mods[] = $siempre;
         if ($id === (int)usuario()['id'] && !in_array('config', $mods, true)) $mods[] = 'config';
         $permisos = count($mods) === count(modulos()) ? null : implode(',', $mods);
         $st = $pdo->prepare('SELECT id FROM usuarios WHERE email = ? AND id <> ?');
@@ -151,7 +151,7 @@ require __DIR__ . '/inc/header.php';
     <?php $tiene = lista_permisos($edit ? $edit['permisos'] : null); ?>
     <div class="campo" style="margin-top:14px"><label>Módulos que puede ver</label>
       <div class="mods-permisos">
-      <?php foreach (modulos() as $k => [$nom, $solo_admin]): if ($k === 'tareas') continue; // Tareas lo tienen todos ?>
+      <?php foreach (modulos() as $k => [$nom, $solo_admin]): if (in_array($k, ['tareas', 'solicitudes'], true)) continue; // estos los tienen todos ?>
         <label><input type="checkbox" name="mods[]" value="<?= $k ?>" <?= in_array($k, $tiene, true) ? 'checked' : '' ?> <?= ($edit && (int)$edit['id'] === (int)usuario()['id'] && $k === 'config') ? 'disabled checked' : '' ?>> <?= e($nom) ?><?= $solo_admin ? ' <small class="tenue">(solo admin)</small>' : '' ?></label>
       <?php endforeach; ?>
       </div>
