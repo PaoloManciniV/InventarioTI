@@ -44,7 +44,7 @@ function gestiona_usuarios(): bool { return !empty(usuario()['gestiona']) && es_
 function modulos() {
     return [
         'inicio' => ['Vista general', false],
-        'tareas' => ['Tareas del equipo', true],
+        'tareas' => ['Tareas del equipo', false],
         'items' => ['Inventario', false],
         'colaboradores' => ['Colaboradores', false],
         'actas' => ['Actas y firmas', false],
@@ -64,7 +64,10 @@ function modulos() {
 // permisos vacio (NULL) = todos los modulos, como estaba antes
 function lista_permisos($permisos) {
     if ($permisos === null) return array_keys(modulos());
-    return array_values(array_filter(explode(',', (string)$permisos), fn($k) => isset(modulos()[$k])));
+    $l = array_values(array_filter(explode(',', (string)$permisos), fn($k) => isset(modulos()[$k])));
+    // Tareas es para todos los usuarios de la plataforma: no depende de los permisos
+    if (!in_array('tareas', $l, true)) $l[] = 'tareas';
+    return $l;
 }
 
 function puede(string $m): bool {

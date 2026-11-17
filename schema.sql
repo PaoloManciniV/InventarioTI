@@ -194,6 +194,8 @@ CREATE TABLE IF NOT EXISTS notas_personales (
   texto TEXT NULL,
   color VARCHAR(10) NOT NULL DEFAULT 'amarillo',
   fijada TINYINT(1) NOT NULL DEFAULT 0,
+  ancho SMALLINT NULL,
+  alto SMALLINT NULL,
   creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado DATETIME NULL,
   KEY idx_usuario (usuario_id)

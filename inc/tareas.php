@@ -2,14 +2,12 @@
 // tareas del equipo de sistemas: propias (solo las ve quien las crea), asignadas a alguien y grupales.
 // Avisos por correo: al crear, al cumplir, al cambiar la fecha de entrega, al vencerse y un resumen cada mañana
 
-// el equipo = administradores activos que tienen el modulo Tareas
+// el equipo = todos los usuarios activos de la plataforma
 function miembros_tareas() {
     static $m = null;
     if ($m !== null) return $m;
     $m = [];
-    foreach (db()->query("SELECT id, nombre, email, permisos FROM usuarios WHERE activo = 1 AND rol = 'admin' ORDER BY nombre") as $u) {
-        if (in_array('tareas', lista_permisos($u['permisos']), true)) $m[(int)$u['id']] = $u;
-    }
+    foreach (db()->query('SELECT id, nombre, email FROM usuarios WHERE activo = 1 ORDER BY nombre') as $u) $m[(int)$u['id']] = $u;
     return $m;
 }
 

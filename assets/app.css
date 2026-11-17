@@ -560,21 +560,23 @@ body:has(.modal-fondo) { overflow: hidden; }
 .caso-transferir summary { cursor: pointer; font-weight: 600; }
 .caso-transferir form { margin-top: 10px; }
 /* bloc de notas personal */
-.stickies { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; align-items: start; }
-.sticky { border-radius: 4px; padding: 10px; display: flex; flex-direction: column; min-height: 190px; box-shadow: 0 6px 16px rgba(0,0,0,.35); color: #1d1d1d; position: relative; }
-.sticky.fijada::before { content: "📌"; position: absolute; top: -10px; right: 10px; font-size: 18px; }
+.stickies { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+/* cada nota tiene su tamaño: se estira desde la esquina de abajo a la derecha (ancho y alto) y se guarda */
+.sticky { border-radius: 4px; padding: 10px; display: flex; flex-direction: column; width: 250px; height: 230px; min-width: 180px; min-height: 150px; max-width: 100%; resize: both; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,.35); color: #1d1d1d; position: relative; }
+.sticky.fijada::before { content: "📌"; position: absolute; top: 2px; right: 6px; font-size: 15px; z-index: 1; pointer-events: none; }
+.sticky.fijada textarea { padding-right: 18px; }
 .sticky-amarillo { background: #fff4a8; } .sticky-verde { background: #c8f2c2; } .sticky-azul { background: #c4e1ff; } .sticky-rosa { background: #ffd0e0; } .sticky-gris { background: #e3e3e3; }
-.sticky-texto { flex: 1; display: flex; margin: 0; }
-.sticky textarea { flex: 1; min-height: 140px; width: 100%; background: transparent; border: 0; resize: vertical; color: #1d1d1d; font-family: var(--sans); font-size: 14px; line-height: 1.45; padding: 0; outline: none; box-shadow: none; }
+.sticky-texto { flex: 1; display: flex; margin: 0; min-height: 0; }
+.sticky textarea, .sticky textarea:focus { flex: 1; height: auto; min-height: 0; width: 100%; background: transparent !important; border: 0 !important; resize: none; color: #1d1d1d !important; font-family: var(--sans); font-size: 14px; line-height: 1.45; padding: 0; outline: none; box-shadow: none !important; border-radius: 0; }
 .sticky textarea::placeholder { color: rgba(0,0,0,.4); }
-.sticky-pie { display: flex; align-items: center; gap: 4px; margin-top: 6px; border-top: 1px solid rgba(0,0,0,.1); padding-top: 6px; }
+.sticky-pie { display: flex; align-items: center; gap: 4px; margin-top: 6px; padding-right: 12px; flex-shrink: 0; border-top: 1px solid rgba(0,0,0,.1); padding-top: 6px; }
 .sticky-pie form { margin: 0; }
 .sticky-estado { font-size: 11px; color: rgba(0,0,0,.5); margin-right: auto; }
 .punto { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); padding: 0; cursor: pointer; }
 .punto-amarillo { background: #fff4a8; } .punto-verde { background: #c8f2c2; } .punto-azul { background: #c4e1ff; } .punto-rosa { background: #ffd0e0; } .punto-gris { background: #e3e3e3; }
 .sticky-btn { background: none; border: 0; cursor: pointer; font-size: 14px; padding: 2px 3px; opacity: .7; }
 .sticky-btn:hover { opacity: 1; }
-.sticky-nueva { background: transparent; border: 2px dashed var(--borde); box-shadow: none; align-items: center; justify-content: center; }
-.sticky-nueva button { background: none; border: 0; color: var(--tenue); font-size: 15px; cursor: pointer; width: 100%; height: 100%; min-height: 170px; }
+.sticky-nueva { background: transparent; border: 2px dashed var(--borde); box-shadow: none; align-items: center; justify-content: center; resize: none; width: 250px; height: 230px; }
+.sticky-nueva button { background: none; border: 0; color: var(--tenue); font-size: 15px; cursor: pointer; width: 100%; height: 100%; }
 .sticky-nueva:hover { border-color: var(--cat); }
 .sticky-nueva:hover button { color: var(--cat); }

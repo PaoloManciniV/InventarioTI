@@ -80,6 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($acc === 'np_color' && in_array($_POST['color'] ?? '', $colores, true)) {
             db()->prepare('UPDATE notas_personales SET color = ? WHERE id = ? AND usuario_id = ?')->execute([$_POST['color'], $nid, $yo]);
         }
+        if ($acc === 'np_tamano') {
+            // el tamaño que le dio al estirarla (se guarda solo, sin recargar)
+            db()->prepare('UPDATE notas_personales SET ancho = ?, alto = ? WHERE id = ? AND usuario_id = ?')
+                ->execute([max(180, min(1200, (int)($_POST['ancho'] ?? 250))), max(150, min(1200, (int)($_POST['alto'] ?? 230))), $nid, $yo]);
+            volver('Guardada');
+        }
         if ($acc === 'np_fijar') {
             db()->prepare('UPDATE notas_personales SET fijada = 1 - fijada WHERE id = ? AND usuario_id = ?')->execute([$nid, $yo]);
         }
@@ -334,7 +340,7 @@ require __DIR__ . '/inc/header.php';
     <form method="post" class="sticky sticky-nueva"><?= csrf_campo() ?><input type="hidden" name="accion" value="np_nueva"><input type="hidden" name="vista" value="notas">
       <button>+ Nota nueva</button></form>
     <?php foreach ($notas as $n): ?>
-    <div class="sticky sticky-<?= e($n['color']) ?><?= $n['fijada'] ? ' fijada' : '' ?>" id="n<?= $n['id'] ?>">
+    <div class="sticky sticky-<?= e($n['color']) ?><?= $n['fijada'] ? ' fijada' : '' ?>" id="n<?= $n['id'] ?>" data-nota="<?= $n['id'] ?>"<?= !empty($n['ancho']) ? ' style="width:' . (int)$n['ancho'] . 'px;height:' . (int)$n['alto'] . 'px"' : '' ?>>
       <form method="post" class="sticky-texto" data-autoguardar><?= csrf_campo() ?><input type="hidden" name="accion" value="np_guardar"><input type="hidden" name="id" value="<?= $n['id'] ?>"><input type="hidden" name="vista" value="notas">
         <textarea name="texto" placeholder="Escribe aquí…" maxlength="20000"><?= e($n['texto']) ?></textarea>
         <noscript><button class="btn btn-sm">Guardar</button></noscript></form>

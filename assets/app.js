@@ -365,3 +365,27 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('beforeunload', function (e) { if (ta.value !== ultimo) { guardar(); e.preventDefault(); e.returnValue = ''; } });
   });
 })();
+
+/* notas personales: al estirarlas (ancho y alto) se guarda el tamaño de cada una */
+(function () {
+  if (!window.ResizeObserver) return;
+  var notas = document.querySelectorAll('.sticky[data-nota]');
+  if (!notas.length) return;
+  var csrf = (document.querySelector('meta[name=csrf]') || {}).content || '';
+  var tiempos = {}, listo = false;
+  var ro = new ResizeObserver(function (entradas) {
+    if (!listo) return; // la primera medida es al cargar la pagina, no un cambio
+    entradas.forEach(function (en) {
+      var el = en.target, id = el.dataset.nota;
+      clearTimeout(tiempos[id]);
+      tiempos[id] = setTimeout(function () {
+        var f = new FormData();
+        f.append('csrf', csrf); f.append('accion', 'np_tamano'); f.append('id', id);
+        f.append('ancho', Math.round(el.offsetWidth)); f.append('alto', Math.round(el.offsetHeight));
+        fetch(location.pathname, { method: 'POST', body: f, headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+      }, 500);
+    });
+  });
+  notas.forEach(function (n) { ro.observe(n); });
+  setTimeout(function () { listo = true; }, 300);
+})();
