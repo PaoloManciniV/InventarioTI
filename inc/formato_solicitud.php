@@ -154,8 +154,8 @@ function pdf_formato_solicitud($s, $lineas, $aprobador = '', $solicitante = '') 
     $pdf->SetXY($x0, $y + 0.6); $pdf->Cell($W, 3.2, 'GENERO: MANTENIMIENTO GENERAL', 0, 0, 'C');
 
     // ---- codigo de autorizacion: pequeño, abajo a la derecha. Con el se busca la solicitud en la plataforma
-    $pdf->SetTextColor(90, 90, 90);
-    $pdf->SetFont('Courier', 'B', 5.5);
+    $pdf->SetTextColor(150, 150, 150);
+    $pdf->SetFont('Courier', '', 5.5);
     $pdf->SetXY($x0 + $W - 60, $y + 0.6); $pdf->Cell(60, 2.6, pdf_txt('Aut. ' . ($s['token'] ?? '') . ' · ' . codigo_solicitud($s)), 0, 0, 'R');
     $pdf->SetTextColor(0, 0, 0);
 
