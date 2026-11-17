@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         guardar_lineas($id, $lineas);
         evento_solicitud($id, $acc === 'crear' ? 'Radicó la solicitud (queda por aprobar)' : ($reenvio ? 'La corrigió y la volvió a enviar para aprobación' : 'Editó la solicitud'));
         if ($acc === 'crear' || $reenvio) avisar_solicitud($id, 'radicada');
-        ir_sol($acc === 'crear' ? 'Solicitud radicada: ya les llegó a Paolo y Carlos para aprobarla' : 'Solicitud guardada', 'ok', $id);
+        ir_sol($acc === 'crear' ? 'Solicitud radicada: ya llegó el aviso para aprobarla' : 'Solicitud guardada', 'ok', $id);
     }
 
     if ($acc === 'aprobar' || $acc === 'rechazar') {
@@ -399,7 +399,7 @@ require __DIR__ . '/inc/header.php';
   <a class="modal-x" href="<?= $editar ? '?ver=' . $editar['id'] : 'solicitudes.php' ?>" aria-label="Cerrar">×</a>
   <h2><?= $editar ? ($editar['estado'] === 'rechazada' ? 'Corregir y volver a enviar ' : 'Editar ') . codigo_solicitud($editar) : 'Radicar solicitud' ?></h2>
   <?php if ($editar && $editar['estado'] === 'rechazada'): ?><div class="aviso aviso-error" style="margin-top:-4px">La rechazó <?= e($editar['aprobador']) ?>: <?= e($editar['rechazo_motivo']) ?></div>
-  <?php elseif (!$editar): ?><p class="tenue" style="margin-top:-6px">Departamento: <b>SISTEMAS</b>. Al radicarla les llega a Paolo y Carlos para aprobarla; cuando la aprueben, podrás imprimir el formato (una sola vez).</p><?php endif; ?>
+  <?php elseif (!$editar): ?><p class="tenue" style="margin-top:-6px">Departamento: <b>SISTEMAS</b>. Al radicarla llega el aviso para aprobarla; cuando la aprueben, podrás imprimir el formato (una sola vez).</p><?php endif; ?>
   <?= form_solicitud($s0, $cats, $colabs, $editar ? lineas_solicitud($editar['id']) : [], $tipos) ?>
   <p style="margin-bottom:0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primario"><?= $editar ? ($editar['estado'] === 'rechazada' ? 'Volver a enviar para aprobación' : 'Guardar') : 'Radicar y enviar para aprobación' ?></button> <a class="btn btn-borde" href="<?= $editar ? '?ver=' . $editar['id'] : 'solicitudes.php' ?>">Cancelar</a>
   <?php if ($editar): ?><button class="btn btn-borde" style="margin-left:auto;color:var(--rojo)" name="accion" value="borrar" formnovalidate onclick="return confirm('¿Borrar esta solicitud?')">Borrar</button><?php endif; ?></p>
@@ -439,7 +439,7 @@ require __DIR__ . '/inc/header.php';
       <input name="nota" maxlength="1000" placeholder="Nota (obligatoria si la rechazas)">
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-primario" name="accion" value="aprobar">✔ Aprobar y liberar el formato</button><button class="btn btn-borde" name="accion" value="rechazar" style="color:var(--rojo)">✘ Rechazar</button></div>
     </form>
-    <?php else: ?><div class="sol-paso"><b>Esperando aprobación</b> de Paolo o Carlos. Les llegó el correo; cuando la aprueben te llega a ti y aquí aparece el botón para imprimir.</div><?php endif; ?>
+    <?php else: ?><div class="sol-paso"><b>Esperando aprobación.</b> Ya llegó el aviso; cuando la aprueben te llega a ti y aquí aparece el botón para imprimir.</div><?php endif; ?>
   <?php elseif ($ver['estado'] === 'aprobada' && $puede_pdf): ?>
     <div class="sol-paso sol-paso-pdf"><b>Aprobada por <?= e($ver['aprobador']) ?>.</b> Imprime el formato y entrégalo a administración. <b>El PDF sale una sola vez:</b> ábrelo e imprímelo de una (hoja carta, usa el de arriba y recorta por la línea).
       <div style="margin-top:8px"><a class="btn btn-primario" href="?pdf=<?= $ver['id'] ?>" target="_blank" data-pdf-unico>🖨 Abrir PDF para imprimir</a></div></div>
