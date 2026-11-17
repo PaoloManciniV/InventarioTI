@@ -65,11 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="caja"><form method="post">
   <div class="marca" style="padding:0"><span class="logo">AC</span><span>inventario<small>empresa:~/sistemas$</small></span></div>
   <div class="prompt"><b>$</b> ssh sistemas@empresa <span style="animation:parpadeo 1s steps(1) infinite">_</span></div>
+  <?php if ($f = flash()): ?><div class="aviso aviso-<?= e($f[1]) ?>" style="margin:0"><?= e($f[0]) ?></div><?php endif; ?>
   <?php if ($error): ?><div class="aviso aviso-error" style="margin:0"><?= e($error) ?></div><?php endif; ?>
   <?= csrf_campo() ?>
   <div class="campo"><label>Usuario o correo</label><input type="text" name="email" required autofocus autocomplete="username" autocapitalize="off" spellcheck="false" value="<?= e($_POST['email'] ?? '') ?>"></div>
   <div class="campo"><label>Clave</label><input type="password" name="clave" required autocomplete="current-password"></div>
   <button class="btn btn-primario btn-bloque">Ingresar</button>
+  <a href="recuperar.php" style="font-size:13px;text-align:center">¿Olvidaste tu clave?</a>
 </form></div>
 <style>@keyframes parpadeo { 50% { opacity: 0; } }</style>
 <script src="assets/app.js?v=15"></script>

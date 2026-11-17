@@ -262,6 +262,20 @@ CREATE TABLE IF NOT EXISTS avisos_usuarios (
   PRIMARY KEY (usuario_id, aviso)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- olvide mi clave: codigos que llegan al correo
+CREATE TABLE IF NOT EXISTS claves_recuperacion (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id INT NOT NULL,
+  codigo_hash VARCHAR(255) NOT NULL,
+  expira DATETIME NOT NULL,
+  intentos TINYINT NOT NULL DEFAULT 0,
+  usado TINYINT(1) NOT NULL DEFAULT 0,
+  ip VARCHAR(45) NULL,
+  creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_usuario (usuario_id, creado),
+  KEY idx_ip (ip, creado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `ajustes` (
   `clave` varchar(60) NOT NULL,
   `valor` varchar(500) DEFAULT NULL,

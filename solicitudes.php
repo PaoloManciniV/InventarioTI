@@ -198,8 +198,8 @@ if (!empty($_GET['pdf'])) {
         $pdf = pdf_formato_solicitud($s, lineas_solicitud($s['id']), (string)$s['aprobador'], (string)$s['solicitante']);
     } catch (Throwable $e) {
         if (!$repite) db()->prepare('UPDATE solicitudes SET impreso_en = NULL, impreso_por = NULL WHERE id = ?')->execute([$s['id']]);
-        error_log('pdf solicitud: ' . $e->getMessage());
-        ir_sol('No se pudo generar el PDF. Intenta otra vez', 'error', $s['id']);
+        error_log('pdf solicitud: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+        ir_sol('No se pudo generar el PDF (' . $e->getMessage() . ' · ' . basename($e->getFile()) . ':' . $e->getLine() . '). Mándale este mensaje a sistemas', 'error', $s['id']);
     }
     evento_solicitud($s['id'], ($repite ? 'Volvió a descargar el formato (dentro de los 10 minutos)' : 'Descargó el formato para imprimir') . ' · código ' . $s['token']);
     // se entrega como archivo: sin compresion ni largo anunciado, para que no llegue cortado
@@ -298,6 +298,7 @@ require __DIR__ . '/inc/header.php';
   <div class="acciones"><a class="btn btn-primario" href="?nueva=1">+ Radicar solicitud</a></div>
 </div>
 
+<?php if ($aprueba && !correos_solicitudes() && !correos_aviso('sol_radicada')): ?><div class="aviso aviso-error">Nadie está recibiendo el correo de las solicitudes por aprobar. Márcate en <a href="config_panel.php?tab=avisos">Configuración → Avisos por correo</a> o pon <span class="mono">MAIL_SOLICITUDES</span> en el .env.</div><?php endif; ?>
 <?php if ($aprueba && $por_aprobar): ?><div class="aviso" style="border-color:var(--cat-linea);background:var(--cat-suave)"><b><?= $por_aprobar ?> solicitud<?= $por_aprobar > 1 ? 'es' : '' ?> por aprobar.</b> <a href="?estado=por_aprobar">Revisarlas</a></div><?php endif; ?>
 
 <div class="pestanas-herr" style="margin:4px 0 14px">

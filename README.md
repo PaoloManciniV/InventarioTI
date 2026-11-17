@@ -55,6 +55,7 @@ UPDATE usuarios SET gestiona_usuarios = 1 WHERE email = 'admin@ejemplo.com';
 ## Seguridad
 
 - Sesión con timeout, cookies `HttpOnly`/`SameSite`, CSRF en todos los formularios y cabeceras CSP.
+- "¿Olvidaste tu clave?": código de 6 dígitos al correo registrado, vence en 10 minutos, 5 intentos, sin revelar si el usuario existe; avisa al usuario y a `MAIL_ALERTAS` cuando se cambia.
 - Bloqueo de ingreso tras 5 claves malas (por correo) o 20 (por IP) en 15 minutos, con aviso por correo.
 - Claves WiFi y PINs cifrados con `APP_KEY` (AES-256-GCM).
 - `.htaccess` bloquea `.env`, `.sql`, `inc/`, `uploads/` e `instalar.php`.

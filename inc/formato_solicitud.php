@@ -55,11 +55,17 @@ function pdf_formato_solicitud($s, $lineas, $aprobador = '', $solicitante = '') 
     $pdf->Line($x0 + $L, $y0, $x0 + $L, $y0 + $hc);
     $pdf->Line($x0 + 150, $y0, $x0 + 150, $y0 + $hc);
     $logo = dirname(__DIR__) . '/assets/logo_agrocosta.png';
+    $con_logo = false;
     if (is_file($logo)) {
-        [$lw, $lh] = getimagesize($logo);
-        $alto = $hc - 2.4; $ancho = min($L - 6, $alto * $lw / $lh); $alto = $ancho * $lh / $lw;
-        $pdf->Image($logo, $x0 + ($L - $ancho) / 2, $y0 + ($hc - $alto) / 2, $ancho, $alto);
-    } else {
+        // si la imagen no se puede leer, el formato sale igual con el logo dibujado
+        try {
+            [$lw, $lh] = getimagesize($logo);
+            $alto = $hc - 2.4; $ancho = min($L - 6, $alto * $lw / $lh); $alto = $ancho * $lh / $lw;
+            $pdf->Image($logo, $x0 + ($L - $ancho) / 2, $y0 + ($hc - $alto) / 2, $ancho, $alto);
+            $con_logo = true;
+        } catch (Throwable $e) { error_log('logo formato: ' . $e->getMessage()); }
+    }
+    if (!$con_logo) {
         // logo dibujado: ovalo amarillo y el nombre
         $cx = $x0 + $L / 2; $cy = $y0 + $hc / 2;
         $pdf->SetDrawColor(245, 196, 0); $pdf->SetLineWidth(1.4);

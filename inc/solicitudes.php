@@ -108,8 +108,8 @@ function correo_solicitud($id, $evento, $extra = '', $quien = 'Sistemas') {
     // en Configuracion (si marcaron "solo urgentes", solo las urgentes) y, cuando le toca, a quien la radico
     $clave = ['radicada' => 'sol_radicada', 'aprobada' => 'sol_aprobacion', 'rechazada' => 'sol_aprobacion'][$evento] ?? 'sol_estado';
     $para = array_merge(correos_solicitudes(), correos_aviso($clave, $s['urgencia'] === 'urgente'));
-    // que una solicitud por aprobar nunca se quede sin aviso: si nadie esta configurado, a quienes aprueban
-    if ($evento === 'radicada' && !array_filter($para)) $para = array_column(aprobadores_solicitud(), 'email');
+    // si no hay nadie configurado, a MAIL_ALERTAS (nunca a todos los que aprueban)
+    if (!array_filter($para) && env('MAIL_ALERTAS', '')) $para = array_map('trim', explode(',', env('MAIL_ALERTAS', '')));
     if ($evento !== 'radicada') $para[] = $s['solicitante_email'];
     $para = array_values(array_unique(array_filter($para)));
     if (!$para) return false;
