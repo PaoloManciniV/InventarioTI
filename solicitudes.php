@@ -1,6 +1,20 @@
 <?php
 // solicitudes a administración: registro, estado, historial, resumen (que se pide y cuantas veces) y Excel
 require __DIR__ . '/config.php';
+// si falta algo de la instalacion, decirlo en vez de un error 500
+$falta = [];
+if (!is_file(__DIR__ . '/inc/solicitudes.php')) $falta[] = 'el archivo <b>inc/solicitudes.php</b> (debe ir dentro de la carpeta inc)';
+try { db()->query('SELECT 1 FROM solicitudes_lineas LIMIT 1'); db()->query('SELECT 1 FROM solicitudes_eventos LIMIT 1'); db()->query('SELECT aviso_atraso FROM solicitudes LIMIT 1'); }
+catch (Throwable $e) { $falta[] = 'las tablas: corre <b>65_solicitudes.sql</b> en phpMyAdmin'; }
+if ($falta) {
+    requiere_login();
+    $titulo = 'Solicitudes';
+    $menu = 'solicitudes';
+    require __DIR__ . '/inc/header.php';
+    echo '<div class="cabecera"><div><h1>Solicitudes a administración</h1></div></div><div class="aviso aviso-error">Falta instalar: ' . implode(' y ', $falta) . '.</div>';
+    require __DIR__ . '/inc/footer.php';
+    exit;
+}
 require_once __DIR__ . '/inc/solicitudes.php';
 requiere_modulo('solicitudes');
 
