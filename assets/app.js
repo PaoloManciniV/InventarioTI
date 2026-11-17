@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('click', function (e) {
   var a = e.target.closest('[data-pdf-unico]');
   if (!a) return;
-  a.textContent = 'Abriendo… (no lo cierres sin imprimir)';
+  a.textContent = 'Descargando… ábrelo desde tus descargas';
   a.classList.add('btn-borde'); a.classList.remove('btn-primario');
-  setTimeout(function () { location.reload(); }, 2500);
+  setTimeout(function () { location.reload(); }, 3000);
 });

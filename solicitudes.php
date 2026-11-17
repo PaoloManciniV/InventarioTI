@@ -184,23 +184,31 @@ if (!empty($_GET['pdf'])) {
     if (!$s) ir_sol('Esa solicitud no existe', 'error');
     if (!in_array($s['estado'], ['aprobada', 'pendiente', 'en_compra', 'recibida'], true) || !$s['aprobado_por']) ir_sol('El formato se libera cuando Paolo o Carlos aprueben la solicitud', 'error', $s['id']);
     if ((int)$s['solicitado_por'] !== $yo && !$aprueba) ir_sol('El formato lo imprime quien radicó la solicitud', 'error', $s['id']);
-    // se marca como impreso en el mismo paso: si dos personas le dan al tiempo, solo a una le sale
+    // se marca como impreso en el mismo paso: si dos personas le dan al tiempo, solo a una le sale.
+    // Margen: quien lo descargo lo puede volver a bajar durante 10 minutos (por si fallo la descarga)
     $st = db()->prepare('UPDATE solicitudes SET impreso_en = NOW(), impreso_por = ? WHERE id = ? AND impreso_en IS NULL');
     $st->execute([$yo, $s['id']]);
-    if ($st->rowCount() !== 1) ir_sol('Este formato ya se imprimió' . ($s['impreso_en'] ? ' el ' . fecha_hora($s['impreso_en']) . ($s['impresor'] ? ' (' . $s['impresor'] . ')' : '') : '') . '. Solo sale una vez', 'error', $s['id']);
+    $repite = false;
+    if ($st->rowCount() !== 1) {
+        $repite = (int)$s['impreso_por'] === $yo && $s['impreso_en'] && strtotime($s['impreso_en']) > time() - 600;
+        if (!$repite) ir_sol('Este formato ya se imprimió' . ($s['impreso_en'] ? ' el ' . fecha_hora($s['impreso_en']) . ($s['impresor'] ? ' (' . $s['impresor'] . ')' : '') : '') . '. Solo sale una vez', 'error', $s['id']);
+    }
     require_once __DIR__ . '/inc/formato_solicitud.php';
     try {
         $pdf = pdf_formato_solicitud($s, lineas_solicitud($s['id']), (string)$s['aprobador'], (string)$s['solicitante']);
     } catch (Throwable $e) {
-        db()->prepare('UPDATE solicitudes SET impreso_en = NULL, impreso_por = NULL WHERE id = ?')->execute([$s['id']]);
+        if (!$repite) db()->prepare('UPDATE solicitudes SET impreso_en = NULL, impreso_por = NULL WHERE id = ?')->execute([$s['id']]);
         error_log('pdf solicitud: ' . $e->getMessage());
         ir_sol('No se pudo generar el PDF. Intenta otra vez', 'error', $s['id']);
     }
-    evento_solicitud($s['id'], 'Descargó el formato para imprimir (código ' . $s['token'] . ')');
+    evento_solicitud($s['id'], ($repite ? 'Volvió a descargar el formato (dentro de los 10 minutos)' : 'Descargó el formato para imprimir') . ' · código ' . $s['token']);
+    // se entrega como archivo: sin compresion ni largo anunciado, para que no llegue cortado
+    @ini_set('zlib.output_compression', 'Off');
+    while (ob_get_level()) ob_end_clean();
     header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . codigo_solicitud($s) . '_requerimiento.pdf"');
-    header('Content-Length: ' . strlen($pdf));
+    header('Content-Disposition: attachment; filename="' . codigo_solicitud($s) . '_requerimiento.pdf"');
     header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
     echo $pdf;
     exit;
 }
@@ -441,10 +449,14 @@ require __DIR__ . '/inc/header.php';
     </form>
     <?php else: ?><div class="sol-paso"><b>Esperando aprobación.</b> Ya llegó el aviso; cuando la aprueben te llega a ti y aquí aparece el botón para imprimir.</div><?php endif; ?>
   <?php elseif ($ver['estado'] === 'aprobada' && $puede_pdf): ?>
-    <div class="sol-paso sol-paso-pdf"><b>Aprobada por <?= e($ver['aprobador']) ?>.</b> Imprime el formato y entrégalo a administración. <b>El PDF sale una sola vez:</b> ábrelo e imprímelo de una (hoja carta: usa el de arriba y recorta por la línea). Sale en blanco con SISTEMAS y el código de autorización; el resto se llena a mano.
-      <div style="margin-top:8px"><a class="btn btn-primario" href="?pdf=<?= $ver['id'] ?>" target="_blank" data-pdf-unico>🖨 Abrir PDF para imprimir</a></div></div>
+    <div class="sol-paso sol-paso-pdf"><b>Aprobada por <?= e($ver['aprobador']) ?>.</b> Imprime el formato y entrégalo a administración. <b>El PDF sale una sola vez:</b> se descarga como archivo; ábrelo desde tus descargas e imprímelo (hoja carta: usa el de arriba y recorta por la línea). Sale en blanco con SISTEMAS y el código de autorización; el resto se llena a mano. Si la descarga falla, tienes 10 minutos para bajarlo otra vez.
+      <div style="margin-top:8px"><a class="btn btn-primario" href="?pdf=<?= $ver['id'] ?>" data-pdf-unico>⬇ Descargar PDF para imprimir</a></div></div>
   <?php elseif ($ver['estado'] === 'aprobada' && !$ver['impreso_en']): ?>
     <div class="sol-paso">Aprobada. Falta que <?= e($ver['solicitante']) ?> imprima el formato.</div>
+  <?php elseif ($ver['estado'] === 'aprobada' && (int)$ver['impreso_por'] === $yo && strtotime($ver['impreso_en']) > time() - 600): ?>
+    <div class="sol-paso">Descargaste el formato el <?= fecha_hora($ver['impreso_en']) ?>. ¿No te bajó o no lo encuentras? Hasta las <?= date('g:i a', strtotime($ver['impreso_en']) + 600) ?> lo puedes bajar otra vez.
+      <div style="margin-top:8px"><a class="btn btn-borde" href="?pdf=<?= $ver['id'] ?>" data-pdf-unico>⬇ Descargar otra vez</a></div>
+      <div style="margin-top:8px">Cuando se lo entregues a administración, márcalo abajo como <b>Entregada a administración</b>.</div></div>
   <?php elseif ($ver['estado'] === 'aprobada'): ?>
     <div class="sol-paso">Formato impreso el <?= fecha_hora($ver['impreso_en']) ?>. Cuando se lo entregues a administración, márcalo abajo como <b>Entregada a administración</b>.</div>
   <?php endif; ?>
