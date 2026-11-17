@@ -166,7 +166,9 @@ require __DIR__ . '/inc/header.php';
     <?php $tiene = lista_permisos($edit ? $edit['permisos'] : null); ?>
     <div class="campo" style="margin-top:14px"><label>Módulos que puede ver</label>
       <div class="mods-permisos">
-      <?php foreach (modulos() as $k => [$nom, $solo_admin]): if (in_array($k, ['tareas', 'solicitudes'], true)) continue; // estos los tienen todos ?>
+      <?php foreach (modulos() as $k => [$nom, $solo_admin]):
+        // Tareas y Solicitudes las tienen todos: se muestran marcadas y sin poder quitarlas
+        if (in_array($k, ['tareas', 'solicitudes'], true)) { echo '<label title="Lo tienen todos los usuarios"><input type="checkbox" checked disabled> ' . e($nom) . ' <small class="tenue">(todos)</small></label>'; continue; } ?>
         <label><input type="checkbox" name="mods[]" value="<?= $k ?>" <?= in_array($k, $tiene, true) ? 'checked' : '' ?> <?= ($edit && (int)$edit['id'] === (int)usuario()['id'] && $k === 'config') ? 'disabled checked' : '' ?>> <?= e($nom) ?><?= $solo_admin ? ' <small class="tenue">(solo admin)</small>' : '' ?></label>
       <?php endforeach; ?>
       </div>
