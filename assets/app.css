@@ -582,11 +582,27 @@ body:has(.modal-fondo) { overflow: hidden; }
 .sticky-nueva:hover button { color: var(--cat); }
 
 /* solicitudes a administracion */
-.sol-lineas { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-.sol-linea { display: flex; gap: 6px; align-items: center; }
-.sol-linea input[type=number] { flex: 0 0 72px; }
-.sol-linea input[data-desc] { flex: 2 1 200px; min-width: 0; }
-.sol-linea select { flex: 1 1 160px; min-width: 0; }
+.sol-modal { max-width: 1040px; }
+.sol-tipos { display: flex; gap: 18px; flex-wrap: wrap; padding: 6px 0; }
+.sol-tipos label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; text-transform: none; letter-spacing: 0; font-family: var(--sans); color: var(--texto); }
+.sol-tipos input { width: auto; margin: 0; }
+.sol-cab, .sol-linea { display: grid; grid-template-columns: 62px 96px minmax(150px, 2fr) minmax(130px, 1.6fr) 96px minmax(120px, 1.2fr) 34px; gap: 6px; align-items: center; }
+.sol-cab span { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; color: var(--tenue); letter-spacing: .4px; }
+.sol-lineas { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; }
+.sol-linea > * { min-width: 0; }
+.sol-gestion { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 12px; }
+.sol-gestion > div { background: var(--tarjeta-2); border: 1px solid var(--borde); border-radius: var(--radio); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sol-gestion small { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; color: var(--tenue); }
+.sol-gestion b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sol-gestion span { font-size: 12px; color: var(--tenue); }
+.sol-paso { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--cat-linea); background: var(--cat-suave); border-radius: var(--radio); font-size: 14px; }
+.sol-paso input { width: 100%; }
+@media (max-width: 800px) {
+  .sol-cab { display: none; }
+  .sol-linea { grid-template-columns: 62px 1fr 34px; padding-bottom: 8px; border-bottom: 1px dashed var(--borde); }
+  .sol-linea input[data-desc], .sol-linea [name="especificaciones[]"], .sol-linea [name="costo_estimado[]"], .sol-linea select { grid-column: 1 / -1; }
+  .sol-gestion { grid-template-columns: 1fr 1fr; }
+}
 .barras { display: flex; flex-direction: column; gap: 5px; }
 .barra-fila { display: grid; grid-template-columns: 38px 1fr 30px; gap: 8px; align-items: center; font-size: 12.5px; }
 .barra-fila.barra-ancha { grid-template-columns: minmax(90px, 42%) 1fr 30px; }
@@ -596,4 +612,3 @@ body:has(.modal-fondo) { overflow: hidden; }
 .barra-llena { height: 100%; background: var(--cat); border-radius: 5px; min-width: 0; }
 .fila-dato { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--borde); font-size: 13.5px; }
 .fila-dato:last-child { border-bottom: 0; }
-@media (max-width: 700px) { .sol-linea { flex-wrap: wrap; } .sol-linea input[data-desc] { flex: 1 1 calc(100% - 80px); } }

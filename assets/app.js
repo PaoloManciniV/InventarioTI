@@ -396,7 +396,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = e.target.closest('[data-agregar-linea]');
     if (b) {
       var cont = b.parentNode.querySelector('[data-lineas]'), ult = cont.lastElementChild, n = ult.cloneNode(true);
-      n.querySelectorAll('input').forEach(function (i) { i.value = i.type === 'number' ? 1 : ''; });
+      var max = parseInt(cont.dataset.max || '0', 10);
+      if (max && cont.children.length >= max) { alert('El formato tiene ' + max + ' renglones. Si necesitas más, haz otra solicitud.'); return; }
+      n.querySelectorAll('input').forEach(function (i) { i.value = i.type === 'number' ? 1 : (i.name === 'unidad[]' ? 'Unidad' : ''); });
       n.querySelector('select').selectedIndex = 0;
       cont.appendChild(n); n.querySelector('[data-desc]').focus();
       return;
@@ -414,5 +416,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var op = document.querySelector('#lista-descs option[value="' + CSS.escape(i.value) + '"]');
     var sel = i.closest('.sol-linea').querySelector('select');
     if (op && op.dataset.cat && sel && !sel.value) sel.value = op.dataset.cat;
+    var un = i.closest('.sol-linea').querySelector('[name="unidad[]"]');
+    if (op && op.dataset.unidad && un && (!un.value || un.value === 'Unidad')) un.value = op.dataset.unidad;
   });
 })();
+
+/* el PDF de la solicitud sale una sola vez: al abrirlo, la ventana se recarga para que el boton ya no este */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('[data-pdf-unico]');
+  if (!a) return;
+  a.textContent = 'Abriendo… (no lo cierres sin imprimir)';
+  a.classList.add('btn-borde'); a.classList.remove('btn-primario');
+  setTimeout(function () { location.reload(); }, 2500);
+});
