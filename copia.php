@@ -18,7 +18,7 @@ if ($clave === '' || strlen($clave) < 20 || !hash_equals($clave, $dada)) {
 
 // lista para el menu "quien hizo la copia"
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['personas'])) {
-    responder(200, ['ok' => true, 'personas' => personas_copias(), 'carpetas' => carpetas_esperadas()]);
+    responder(200, ['ok' => true, 'personas' => personas_copias(), 'carpetas' => carpetas_esperadas(), 'base' => base_copias()]);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') responder(405, ['ok' => false, 'error' => 'Solo POST']);
 
@@ -48,6 +48,15 @@ if (!$carpetas) responder(400, ['ok' => false, 'error' => 'No llegó ninguna car
 
 [$carpetas, $alertas] = revisar_carpetas($carpetas);
 $disco = is_array($d['disco'] ?? null) ? ['etiqueta' => $txt($d['disco']['etiqueta'] ?? '', 60), 'total_gb' => (int)($d['disco']['total_gb'] ?? 0), 'libre_gb' => (int)($d['disco']['libre_gb'] ?? 0)] : [];
+// copias diarias: la carpeta del dia que reviso el script (03nov, 04nov...)
+if (is_array($d['disco'] ?? null) && ($dia = $txt($d['disco']['dia'] ?? '', 60)) !== '') {
+    $disco['dia'] = $dia;
+    $creada = (string)($d['disco']['dia_creada'] ?? '');
+    if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $creada)) {
+        $disco['dia_creada'] = $creada;
+        if (substr($creada, 0, 10) < date('Y-m-d')) $alertas[] = 'La copia más reciente del disco es la carpeta ' . $dia . ' (' . date('d/m/Y', strtotime($creada)) . '): no hay carpeta de hoy';
+    }
+}
 $estado = $alertas ? 'revisar' : 'ok';
 
 // usuario de la plataforma con ese nombre, si existe

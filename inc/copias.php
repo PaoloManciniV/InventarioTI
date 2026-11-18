@@ -24,6 +24,9 @@ function carpetas_esperadas() {
     return array_values(array_filter(array_map('trim', explode(',', (string)env('BACKUP_CARPETAS', '')))));
 }
 
+// carpeta de las copias diarias (adentro se crea una por dia); acepta comodin para el año
+function base_copias() { $b = trim((string)env('BACKUP_BASE', 'Copias diarias *')); return $b === '-' ? '' : $b; }
+
 function personas_copias() {
     return db()->query("SELECT nombre FROM usuarios WHERE activo = 1 AND rol = 'admin' ORDER BY nombre")->fetchAll(PDO::FETCH_COLUMN);
 }
@@ -99,6 +102,7 @@ function correo_copia($id) {
     $tabla = $filas ? '<table style="border-collapse:collapse;width:100%"><tr style="background:#f6f6f6"><th style="' . $td . ';text-align:left">Carpeta</th><th style="' . $td . ';text-align:right">Archivos</th><th style="' . $td . ';text-align:right">Tamaño</th><th style="' . $td . ';text-align:left">Archivo más reciente</th></tr>' . $filas . '</table>' : '';
     $disco = json_decode((string)$c['disco'], true) ?: [];
     $info = [];
+    if (!empty($disco['dia'])) $info[] = 'Carpeta del día ' . $disco['dia'];
     if (!empty($disco['etiqueta'])) $info[] = 'Disco ' . $disco['etiqueta'];
     if (!empty($disco['libre_gb']) && !empty($disco['total_gb'])) $info[] = 'libres ' . $disco['libre_gb'] . ' de ' . $disco['total_gb'] . ' GB';
     if ($c['pc']) $info[] = 'PC ' . $c['pc'] . ($c['usuario_windows'] ? ' (usuario ' . $c['usuario_windows'] . ')' : '');

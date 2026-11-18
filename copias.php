@@ -85,6 +85,7 @@ require __DIR__ . '/inc/header.php';
     <b><?= e($ver['persona']) ?></b>
     <span class="tenue"><?= $ver['origen'] === 'manual' ? '· registrada a mano' . ($ver['registro'] ? ' por ' . e($ver['registro']) : '') : '· reportada por el script del disco' ?></span></p>
   <?php $disco = json_decode((string)$ver['disco'], true) ?: []; $info = [];
+    if (!empty($disco['dia'])) $info[] = 'Carpeta del día ' . $disco['dia'];
     if (!empty($disco['etiqueta'])) $info[] = 'Disco ' . $disco['etiqueta'];
     if (!empty($disco['total_gb'])) $info[] = 'libres ' . (int)$disco['libre_gb'] . ' de ' . (int)$disco['total_gb'] . ' GB';
     if ($ver['pc']) $info[] = 'PC ' . $ver['pc'] . ($ver['usuario_windows'] ? ' · usuario de Windows ' . $ver['usuario_windows'] : '');
@@ -154,6 +155,7 @@ require __DIR__ . '/inc/header.php';
       $ult_script = db()->query("SELECT carpetas FROM copias_seguridad WHERE origen = 'script' AND carpetas IS NOT NULL ORDER BY fecha DESC, id DESC LIMIT 1")->fetchColumn();
       $vistas_ult = array_column(json_decode((string)$ult_script, true) ?: [], 'nombre'); ?>
     <h3 style="margin:16px 0 6px">Carpetas que se revisan</h3>
+    <?php if (base_copias() !== ''): ?><p class="tenue" style="font-size:13px;margin:0 0 6px">Copias diarias: dentro de <span class="mono"><?= e(base_copias()) ?></span> se toma solo la carpeta del día más reciente (03nov, 04nov…) y se revisa lo que tiene adentro. Si no hay carpeta de hoy, sale para revisar. Se cambia con <span class="mono">BACKUP_BASE</span> en el .env.</p><?php endif; ?>
     <?php if ($fijas): ?>
       <p style="margin:0 0 4px"><?php foreach ($fijas as $n): ?><span class="chip chip-gris" style="margin:0 4px 4px 0"><?= e($n) ?></span><?php endforeach; ?></p>
       <p class="tenue" style="font-size:12px;margin-top:0">Fijadas en el .env (<span class="mono">BACKUP_CARPETAS</span>). Si una no está en el disco, sale en rojo.</p>

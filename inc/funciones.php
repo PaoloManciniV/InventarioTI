@@ -631,7 +631,7 @@ function enviar_smtp($para, $nombre, $asunto, $html, $imagenes = []) {
         return true;
     } catch (Throwable $ex) {
         $GLOBALS['correo_error'] = 'smtp: ' . ($m->ErrorInfo ?: $ex->getMessage());
-        error_log('correo a ' . $para . ' fallo: ' . $GLOBALS['correo_error']);
+        error_log('correo a ' . (is_array($para) ? implode(', ', $para) : $para) . ' fallo: ' . $GLOBALS['correo_error']);
         return false;
     }
 }
