@@ -1,5 +1,5 @@
 <?php
-// aviso cuando pasan mas de BACKUP_DIAS dias sin copia de seguridad
+// aviso cuando ya paso el dia limite para la siguiente copia de seguridad (BACKUP_DIAS, por defecto 1)
 // lo corre el cron de Hestia una vez al dia:  php /ruta/a/inventarioti/copias_revisar.php
 // desde el navegador no hace nada
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -8,7 +8,8 @@ require_once __DIR__ . '/inc/copias.php';
 
 $dias = dias_copias();
 $ultima = ultima_copia();
-if ($ultima && strtotime($ultima['fecha']) >= time() - $dias * 86400) { echo "Al dia: ultima copia " . $ultima['fecha'] . "\n"; exit; }
+// copia el 18 -> a mas tardar el 19 -> el 20 sin copia llega el aviso (con BACKUP_DIAS=1; los domingos no cuentan)
+if (!copia_atrasada($ultima)) { echo "Al dia: ultima copia " . $ultima['fecha'] . "\n"; exit; }
 
 // un solo aviso por dia aunque el cron corra varias veces
 $hoy = date('Y-m-d');
@@ -20,7 +21,7 @@ $para = array_values(array_unique(array_merge(correos_copias(), correos_aviso('c
 if (!$para || !correo_configurado()) { echo "Sin destinatarios (MAIL_RESPALDOS o MAIL_INVENTARIO) o sin correo configurado\n"; exit(1); }
 
 $txt = $ultima
-    ? 'La última copia de seguridad fue <b>' . hace_dias($ultima['fecha']) . '</b> (' . fecha_hora($ultima['fecha']) . ', la hizo ' . e($ultima['persona']) . '). Se espera una cada ' . $dias . ' días.'
+    ? 'La última copia de seguridad fue <b>' . hace_dias($ultima['fecha']) . '</b> (' . fecha_hora($ultima['fecha']) . ', la hizo ' . e($ultima['persona']) . '). La siguiente se debía hacer a más tardar el <b>' . date('d/m/Y', strtotime(copia_limite($ultima['fecha']))) . '</b>.'
     : 'Todavía no se ha registrado ninguna copia de seguridad en la plataforma.';
 $html = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;border:1px solid #ddd">'
     . '<div style="background:#000;color:#ffcd11;padding:14px 20px;font-weight:bold;letter-spacing:1px">AGRO-COSTA · COPIA DE SEGURIDAD</div>'

@@ -73,20 +73,27 @@ if ($CARPETAS.Count -gt 0) {
         if ($d) { $d } else { [pscustomobject]@{ Name = $n; FullName = $null } }
     }
 }
-# si la copia del dia son archivos sueltos (no carpetas), se revisa cada archivo
+# si la copia del dia son archivos sueltos (AGR_backup_2026_11_16_210101_7054842.bak...), se agrupan por el
+# nombre sin la fecha: asi cada base sale con el mismo nombre todos los dias y se puede comparar con la anterior
+$grupos = $null
 if (-not $dirs -and $dia) {
-    $dirs = @(Get-ChildItem -LiteralPath $revisar -File -Force -ErrorAction SilentlyContinue)
+    $grupos = @(Get-ChildItem -LiteralPath $revisar -File -Recurse -Force -ErrorAction SilentlyContinue) | Group-Object {
+        $n = [IO.Path]::GetFileNameWithoutExtension($_.Name) -replace '[_\-\s]*(19|20)\d{2}[_\-\.]?\d{2}[_\-\.]?\d{2}.*$', ''
+        if (-not $n) { $n = $_.Extension.TrimStart('.') }
+        ($n + $_.Extension).ToLower()
+    }
+    $dirs = $grupos
 }
 if (-not $dirs) { Linea 'No encontre carpetas en este disco. Este archivo debe estar en la raiz del disco de las copias.' 'Red'; Salir 1 }
 
 $carpetas = @()
 foreach ($d in $dirs) {
     Write-Host ("  {0,-30}" -f $d.Name) -NoNewline
-    if (-not $d.FullName) {
+    if (-not $grupos -and -not $d.FullName) {
         $carpetas += @{ nombre = $d.Name; archivos = 0; mb = 0; ultimo = $null }
         Linea 'NO ESTA EN EL DISCO' 'Red'; continue
     }
-    if ($d -is [IO.FileInfo]) { $arch = @($d) }
+    if ($grupos) { $arch = @($d.Group) }
     else { $arch = @(Get-ChildItem -LiteralPath $d.FullName -File -Recurse -Force -ErrorAction SilentlyContinue) }
     $bytes = ($arch | Measure-Object -Property Length -Sum).Sum
     if (-not $bytes) { $bytes = 0 }

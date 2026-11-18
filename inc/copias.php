@@ -11,7 +11,20 @@ function clave_copias() {
     return $k === '' ? '' : substr(hash_hmac('sha256', 'copias-de-seguridad', $k), 0, 40);
 }
 
-function dias_copias() { return max(1, (int)env('BACKUP_DIAS', 7)); }
+function dias_copias() { return max(1, (int)env('BACKUP_DIAS', 1)); }
+
+// ultimo dia en que se puede hacer la siguiente copia: la fecha de la ultima + BACKUP_DIAS (los domingos no cuentan).
+// Ej.: copia el 18 con BACKUP_DIAS=1 -> a mas tardar el 19; si el 20 no hay copia, sale el aviso
+function copia_limite($fecha) {
+    $t = strtotime(date('Y-m-d', strtotime($fecha)));
+    for ($i = 0; $i < dias_copias();) { $t = strtotime('+1 day', $t); if (date('w', $t) !== '0') $i++; }
+    return date('Y-m-d', $t);
+}
+
+function copia_atrasada($ultima = null) {
+    $ultima = $ultima ?? ultima_copia();
+    return !$ultima || date('Y-m-d') > copia_limite($ultima['fecha']);
+}
 
 function correos_copias() {
     $l = env('MAIL_RESPALDOS', '') ?: env('MAIL_INVENTARIO', '');
@@ -31,8 +44,9 @@ function personas_copias() {
     return db()->query("SELECT nombre FROM usuarios WHERE activo = 1 AND rol = 'admin' ORDER BY nombre")->fetchAll(PDO::FETCH_COLUMN);
 }
 
+// la ultima copia que cuenta: un reporte que dice "no hay carpeta de hoy" no es una copia
 function ultima_copia() {
-    return db()->query('SELECT * FROM copias_seguridad ORDER BY fecha DESC, id DESC LIMIT 1')->fetch() ?: null;
+    return db()->query("SELECT * FROM copias_seguridad WHERE alertas IS NULL OR alertas NOT LIKE '%no hay carpeta de hoy%' ORDER BY fecha DESC, id DESC LIMIT 1")->fetch() ?: null;
 }
 
 function mb_legible($mb) {
@@ -47,10 +61,16 @@ function hace_dias($fecha) {
 }
 
 // compara cada carpeta con la ultima copia que trajo carpetas: falta, vacia, igual a la anterior, mucho mas pequeña
-function revisar_carpetas(array $carpetas) {
-    $st = db()->query("SELECT carpetas FROM copias_seguridad WHERE origen = 'script' AND carpetas IS NOT NULL ORDER BY fecha DESC, id DESC LIMIT 1");
+// $diaria: el reporte es de la carpeta del dia (copias diarias); solo se compara con otro reporte igual,
+// no con uno que reviso la raiz del disco
+function revisar_carpetas(array $carpetas, $diaria = false) {
+    $prev = null;
+    foreach (db()->query("SELECT carpetas, disco FROM copias_seguridad WHERE origen = 'script' AND carpetas IS NOT NULL ORDER BY fecha DESC, id DESC LIMIT 30") as $r) {
+        $era = !empty((json_decode((string)$r['disco'], true) ?: [])['dia']);
+        if ($era === (bool)$diaria) { $prev = $r['carpetas']; break; }
+    }
     $antes = [];
-    foreach (json_decode((string)$st->fetchColumn(), true) ?: [] as $c) $antes[mb_strtolower($c['nombre'])] = $c;
+    foreach (json_decode((string)$prev, true) ?: [] as $c) $antes[mb_strtolower($c['nombre'])] = $c;
     $alertas = [];
     $vistas = [];
     foreach ($carpetas as &$c) {

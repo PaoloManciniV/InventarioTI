@@ -81,10 +81,10 @@ $puede_entregar = es_admin() && puede('actas');
     <?php // en la vista general: aviso si la copia de seguridad esta atrasada
     if ($menu === 'inicio' && puede('copias')) {
         try {
-            $uc = db()->query('SELECT MAX(fecha) FROM copias_seguridad')->fetchColumn();
-            $dc = max(1, (int)env('BACKUP_DIAS', 7));
-            if (!$uc || strtotime($uc) < time() - $dc * 86400) {
-                echo '<div class="aviso aviso-error"><b>Copia de seguridad atrasada:</b> ' . ($uc ? 'la última fue el ' . e(fecha_hora($uc)) : 'todavía no hay ninguna registrada') . '. <a href="copias.php">Ver copias</a></div>';
+            require_once __DIR__ . '/copias.php';
+            $uc = ultima_copia();
+            if (copia_atrasada($uc)) {
+                echo '<div class="aviso aviso-error"><b>Copia de seguridad atrasada:</b> ' . ($uc ? 'la última fue el ' . e(fecha_hora($uc['fecha'])) . ' y la siguiente era a más tardar el ' . date('d/m/Y', strtotime(copia_limite($uc['fecha']))) : 'todavía no hay ninguna registrada') . '. <a href="copias.php">Ver copias</a></div>';
             }
         } catch (Throwable $t) { }
     } ?>

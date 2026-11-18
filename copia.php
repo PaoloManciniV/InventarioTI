@@ -46,7 +46,7 @@ foreach (array_slice(is_array($d['carpetas'] ?? null) ? $d['carpetas'] : [], 0, 
 }
 if (!$carpetas) responder(400, ['ok' => false, 'error' => 'No llegó ninguna carpeta']);
 
-[$carpetas, $alertas] = revisar_carpetas($carpetas);
+[$carpetas, $alertas] = revisar_carpetas($carpetas, !empty($d['disco']['dia']));
 $disco = is_array($d['disco'] ?? null) ? ['etiqueta' => $txt($d['disco']['etiqueta'] ?? '', 60), 'total_gb' => (int)($d['disco']['total_gb'] ?? 0), 'libre_gb' => (int)($d['disco']['libre_gb'] ?? 0)] : [];
 // copias diarias: la carpeta del dia que reviso el script (03nov, 04nov...)
 if (is_array($d['disco'] ?? null) && ($dia = $txt($d['disco']['dia'] ?? '', 60)) !== '') {

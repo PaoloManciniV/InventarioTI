@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin() && ($_POST['accion'] ?? 
 
 $dias = dias_copias();
 $ultima = ultima_copia();
-$vencida = !$ultima || strtotime($ultima['fecha']) < time() - $dias * 86400;
+$vencida = copia_atrasada($ultima);
 $lista = db()->query('SELECT c.*, u.nombre registro FROM copias_seguridad c LEFT JOIN usuarios u ON u.id = c.registrado_por ORDER BY c.fecha DESC, c.id DESC LIMIT 200')->fetchAll();
 $total_anio = (int)db()->query('SELECT COUNT(*) FROM copias_seguridad WHERE YEAR(fecha) = YEAR(CURDATE())')->fetchColumn();
 $revisar = (int)db()->query("SELECT COUNT(*) FROM copias_seguridad WHERE estado = 'revisar' AND fecha > NOW() - INTERVAL 90 DAY")->fetchColumn();
@@ -70,7 +70,7 @@ require __DIR__ . '/inc/header.php';
     <b style="color:<?= $vencida ? 'var(--rojo)' : 'var(--verde)' ?>;font-size:22px"><?= $ultima ? hace_dias($ultima['fecha']) : 'Ninguna' ?></b>
     <?= $ultima ? '<span class="tenue">' . fecha_hora($ultima['fecha']) . ' · ' . e($ultima['persona']) . '</span>' : '' ?></div>
   <div class="kpi"><small>La próxima, a más tardar</small>
-    <b style="font-size:22px"><?= $ultima ? date('d/m/Y', strtotime($ultima['fecha']) + $dias * 86400) : 'Ya' ?></b>
+    <b style="font-size:22px"><?= $ultima ? date('d/m/Y', strtotime(copia_limite($ultima['fecha']))) : 'Ya' ?></b>
     <span class="tenue"><?= $vencida ? 'Está atrasada: ya les llega el aviso por correo' : 'Si no se hace, llega aviso por correo' ?></span></div>
   <div class="kpi"><small>Copias en <?= date('Y') ?></small><b><?= $total_anio ?></b></div>
   <div class="kpi" style="<?= $revisar ? 'border-left-color:var(--rojo)' : '' ?>"><small>Para revisar (90 días)</small><b style="<?= $revisar ? 'color:var(--rojo)' : '' ?>"><?= $revisar ?></b></div>
