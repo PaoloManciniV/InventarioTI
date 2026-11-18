@@ -162,7 +162,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
                 ->execute(array_merge([$etiqueta], array_values($d), [$id]));
             auditar('items', $id, $item, array_merge(['etiqueta' => $etiqueta], $d));
             // responsable cambiado desde la edicion
-            if (isset($_POST['colaborador_id']) && $_POST['colaborador_id'] !== '' && (int)$_POST['colaborador_id'] !== (int)($item['colaborador_id'] ?? 0)) {
+            // colaborador nuevo escrito en el campo: se crea (o se reactiva si ya existia con ese nombre)
+            if (($_POST['colaborador_id'] ?? '') === 'nuevo' && ($nn = trim(preg_replace('/\s+/', ' ', $_POST['nuevo_colaborador'] ?? ''))) !== '' && mb_strlen($nn) <= 120) {
+                $st = db()->prepare('SELECT id, activo FROM colaboradores WHERE LOWER(nombre) = LOWER(?) ORDER BY activo DESC LIMIT 1');
+                $st->execute([$nn]);
+                if ($ya = $st->fetch()) {
+                    if (!(int)$ya['activo']) { db()->prepare('UPDATE colaboradores SET activo = 1 WHERE id = ?')->execute([$ya['id']]); auditar('colaboradores', (int)$ya['id'], null, null, 'Reactivado al asignarle ' . $etiqueta); }
+                    $_POST['colaborador_id'] = (string)$ya['id'];
+                } else {
+                    db()->prepare('INSERT INTO colaboradores (nombre, activo) VALUES (?, 1)')->execute([$nn]);
+                    $_POST['colaborador_id'] = (string)db()->lastInsertId();
+                    auditar('colaboradores', (int)$_POST['colaborador_id'], null, null, 'Creado al asignarle ' . $etiqueta);
+                }
+            }
+            if (isset($_POST['colaborador_id']) && ctype_digit((string)$_POST['colaborador_id']) && (int)$_POST['colaborador_id'] !== (int)($item['colaborador_id'] ?? 0)) {
                 [$ok, $msg] = cambiar_responsable($item, (int)$_POST['colaborador_id'], trim($_POST['motivo_resp'] ?? '') ?: 'Cambiado al editar el equipo', date('Y-m-d'));
                 flash($ok ? 'Guardado. ' . $msg : 'Guardado, pero el responsable no cambió: ' . $msg, $ok ? 'ok' : 'error');
             }
@@ -241,10 +254,10 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Ubicacion fisica</label><input name="ubicacion" value="<?= e($item['ubicacion'] ?? '') ?>" placeholder="1er piso · Recepción"></div>
     <?php if ($id && in_array($item['estado'] ?? '', ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)):
       $gente_r = db()->query('SELECT id, nombre, area FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll(); ?>
-    <div class="campo"><label>Responsable (quién lo tiene)</label><select name="colaborador_id" data-buscar data-resp="<?= (int)($item['colaborador_id'] ?? 0) ?>">
+    <div class="campo"><label>Responsable (quién lo tiene)</label><select name="colaborador_id" data-buscar data-crear="nuevo_colaborador" data-resp="<?= (int)($item['colaborador_id'] ?? 0) ?>">
       <option value="0" <?= empty($item['colaborador_id']) ? 'selected' : '' ?>>Sistemas (sin responsable)</option>
       <?php foreach ($gente_r as $g): ?><option value="<?= $g['id'] ?>" <?= (int)$g['id'] === (int)($item['colaborador_id'] ?? 0) ? 'selected' : '' ?>><?= e($g['nombre']) ?><?= $g['area'] ? ' · ' . e($g['area']) : '' ?></option><?php endforeach; ?>
-    </select><small>Si lo cambias queda en la hoja de vida y en Ver cambios</small></div>
+    </select><small>Si no está, escribe el nombre y dale "+ Agregar". Queda en la hoja de vida y en Ver cambios</small></div>
     <div class="campo" data-motivo-resp hidden><label>Motivo del cambio de responsable</label><input name="motivo_resp" placeholder="Ej. el equipo es de él, estaba mal"></div>
     <script>document.querySelector('[data-resp]').addEventListener('change', function () { document.querySelector('[data-motivo-resp]').hidden = this.value === this.dataset.resp; });</script>
     <?php endif; ?>

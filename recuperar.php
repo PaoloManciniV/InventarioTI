@@ -151,6 +151,6 @@ if ($instalado && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
   <div class="pie"><a href="login.php">← Volver a ingresar</a><?php if ($paso === 2): ?><a href="recuperar.php?otro=1">Pedir otro código</a><?php endif; ?></div>
 </form></div>
-<script src="assets/app.js?v=16"></script>
+<script src="assets/app.js?v=17"></script>
 </body>
 </html>

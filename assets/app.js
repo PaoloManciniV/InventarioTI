@@ -164,6 +164,17 @@ function buscadores() {
         return palabras.every(function (p) { return t.indexOf(p) >= 0; });
       }).slice(0, 60);
       lista.innerHTML = '';
+      var txt = inp.value.trim();
+      if (!vis.length && sel.dataset.crear && txt.length >= 3) {
+        // no esta en la lista: se ofrece crearlo (ej. un colaborador nuevo)
+        var n = document.createElement('div');
+        n.className = 'marcado';
+        n.textContent = '+ Agregar "' + txt + '"';
+        n.addEventListener('mousedown', function (ev) { ev.preventDefault(); crear(txt); });
+        lista.appendChild(n);
+        lista.style.display = 'block';
+        return;
+      }
       if (!vis.length) { lista.innerHTML = '<div class="vacio">Sin resultados</div>'; }
       vis.forEach(function (o, k) {
         var d = document.createElement('div');
@@ -173,6 +184,15 @@ function buscadores() {
         lista.appendChild(d);
       });
       lista.style.display = 'block';
+    }
+    function crear(txt) {
+      var o = sel.querySelector('option[data-nuevo]');
+      if (!o) { o = document.createElement('option'); o.value = 'nuevo'; o.setAttribute('data-nuevo', '1'); sel.appendChild(o); }
+      o.text = txt + ' (nuevo)';
+      var h = sel.form && sel.form.querySelector('input[name="' + sel.dataset.crear + '"]');
+      if (!h && sel.form) { h = document.createElement('input'); h.type = 'hidden'; h.name = sel.dataset.crear; sel.form.appendChild(h); }
+      if (h) h.value = txt;
+      escoger(o);
     }
     function escoger(o) {
       inp.value = o.text;
@@ -192,7 +212,7 @@ function buscadores() {
     inp.addEventListener('keydown', function (ev) {
       if (ev.key === 'ArrowDown') { marcado = Math.min(marcado + 1, vis.length - 1); pintar(); ev.preventDefault(); }
       else if (ev.key === 'ArrowUp') { marcado = Math.max(marcado - 1, 0); pintar(); ev.preventDefault(); }
-      else if (ev.key === 'Enter') { if (vis[marcado]) { escoger(vis[marcado]); } ev.preventDefault(); }
+      else if (ev.key === 'Enter') { if (vis[marcado]) { escoger(vis[marcado]); } else if (!vis.length && sel.dataset.crear && inp.value.trim().length >= 3) { crear(inp.value.trim()); } ev.preventDefault(); }
       else if (ev.key === 'Escape') { lista.style.display = 'none'; }
     });
     inp.addEventListener('blur', function () {
