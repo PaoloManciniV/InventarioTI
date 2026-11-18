@@ -52,7 +52,7 @@ require __DIR__ . '/inc/header.php';
     <input name="usuario" autocomplete="username" autocapitalize="off" spellcheck="false" value="<?= e($_POST['usuario'] ?? $yo['usuario'] ?? '') ?>" placeholder="ej. nombre.inventario">
     <small>Letras, números, punto o guion. Déjalo vacío para entrar solo con el correo.</small></div>
   <div class="rejilla">
-    <div class="campo"><label>Clave nueva</label><input type="password" name="nueva" autocomplete="new-password" minlength="10"><small>Vacío = no cambia. Mínimo 10, con letras y números</small></div>
+    <div class="campo"><label>Clave nueva</label><input type="password" name="nueva" autocomplete="new-password" minlength="6"><small>Vacío = no cambia. Mínimo 6, con letras y números</small></div>
     <div class="campo"><label>Repite la clave nueva</label><input type="password" name="repite" autocomplete="new-password"></div>
   </div>
   <div class="campo"><label>Clave actual (para confirmar)</label><input type="password" name="actual" required autocomplete="current-password"></div>

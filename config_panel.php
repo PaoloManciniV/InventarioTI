@@ -161,7 +161,7 @@ require __DIR__ . '/inc/header.php';
       <div class="campo"><label>Rol</label><select name="rol">
         <option value="consulta">Consulta (solo ve)</option>
         <option value="admin" <?= ($edit['rol'] ?? '') === 'admin' ? 'selected' : '' ?>>Administrador (IT)</option></select></div>
-      <div class="campo"><label><?= $edit ? 'Nueva clave (vacio = no cambia)' : 'Clave' ?></label><input type="password" name="clave" minlength="10" autocomplete="new-password" <?= $edit ? '' : 'required' ?>><small>Mínimo 10 caracteres, con letras y números</small></div>
+      <div class="campo"><label><?= $edit ? 'Nueva clave (vacio = no cambia)' : 'Clave' ?></label><input type="password" name="clave" minlength="6" autocomplete="new-password" <?= $edit ? '' : 'required' ?>><small>Mínimo 6 caracteres, con letras y números</small></div>
     </div>
     <?php $tiene = lista_permisos($edit ? $edit['permisos'] : null); ?>
     <div class="campo" style="margin-top:14px"><label>Módulos que puede ver</label>

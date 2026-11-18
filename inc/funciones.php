@@ -355,9 +355,9 @@ function usuario_invalido($login, $id) {
     return $st->fetch() ? 'Ese usuario ya existe' : null;
 }
 
-// clave fuerte: 10 caracteres con letras y numeros
+// clave: minimo 6 caracteres con letras y numeros (el bloqueo tras 5 claves malas la protege)
 function clave_debil($clave) {
-    if (strlen($clave) < 10) return 'La clave debe tener mínimo 10 caracteres';
+    if (strlen($clave) < 6) return 'La clave debe tener mínimo 6 caracteres';
     if (!preg_match('/[A-Za-z]/', $clave) || !preg_match('/\d/', $clave)) return 'La clave debe tener letras y números';
     return null;
 }

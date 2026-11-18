@@ -16,8 +16,8 @@ if ((int)$pdo->query('SELECT COUNT(*) FROM usuarios')->fetchColumn() > 0) {
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $clave = $_POST['clave'] ?? '';
-    if (strlen($clave) < 10) {
-        $msg = 'La clave debe tener minimo 10 caracteres';
+    if (strlen($clave) < 6) {
+        $msg = 'La clave debe tener minimo 6 caracteres';
     } else {
         $st = $pdo->prepare("INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (?,?,?,'admin')");
         $st->execute([trim($_POST['nombre']), strtolower(trim($_POST['email'])), password_hash($clave, PASSWORD_DEFAULT)]);
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="post" class="rejilla">
   <div class="campo"><label>Nombre</label><input name="nombre" required></div>
   <div class="campo"><label>Correo</label><input type="email" name="email" required></div>
-  <div class="campo"><label>Clave</label><input type="password" name="clave" required minlength="10"></div>
+  <div class="campo"><label>Clave</label><input type="password" name="clave" required minlength="6"></div>
   <div class="campo ancho"><label>Sedes separadas por coma</label><input name="sedes" placeholder="Principal, Bodega"></div>
   <div class="ancho"><button class="btn btn-primario">Crear</button></div>
 </form></div></div></body></html>

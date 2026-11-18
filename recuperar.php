@@ -140,8 +140,8 @@ if ($instalado && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="hidden" name="accion" value="cambiar">
     <?php if (!$aviso && !$error): ?><p class="tenue" style="margin:0">Escribe el código que te llegó al correo (vence en <?= MINUTOS_CODIGO ?> minutos) y tu clave nueva.</p><?php endif; ?>
     <div class="campo"><label>Código de 6 dígitos</label><input class="codigo" name="codigo" required inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" autofocus></div>
-    <div class="campo"><label>Clave nueva</label><input type="password" name="clave" required minlength="10" autocomplete="new-password"><small>Mínimo 10 caracteres, con letras y números</small></div>
-    <div class="campo"><label>Repite la clave nueva</label><input type="password" name="clave2" required minlength="10" autocomplete="new-password"></div>
+    <div class="campo"><label>Clave nueva</label><input type="password" name="clave" required minlength="6" autocomplete="new-password"><small>Mínimo 6 caracteres, con letras y números</small></div>
+    <div class="campo"><label>Repite la clave nueva</label><input type="password" name="clave2" required minlength="6" autocomplete="new-password"></div>
     <button class="btn btn-primario btn-bloque">Cambiar clave</button>
   <?php endif; ?>
   <div class="pie"><a href="login.php">← Volver a ingresar</a><?php if ($paso === 2): ?><a href="recuperar.php?otro=1">Pedir otro código</a><?php endif; ?></div>
