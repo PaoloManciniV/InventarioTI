@@ -30,10 +30,15 @@ if ($instalado && $_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ((int)$st->fetchColumn() >= 5) {
             $error = 'Demasiadas solicitudes desde este equipo. Intenta en una hora o pídele a sistemas que te cambie la clave.';
         } else {
-            $st = db()->prepare('SELECT * FROM usuarios WHERE (LOWER(email) = ? OR LOWER(usuario) = ?) AND activo = 1 LIMIT 1');
+            $st = db()->prepare('SELECT * FROM usuarios WHERE LOWER(email) = ? OR LOWER(usuario) = ? ORDER BY activo DESC LIMIT 1');
             $st->execute([$quien, $quien]);
             $u = $st->fetch();
             $rid = 0;
+        }
+        // usuario inactivo: se le dice y no se manda codigo
+        if (!$error && $u && !(int)$u['activo']) {
+            $error = 'Este usuario está inactivo. Si necesitas entrar, habla con sistemas.';
+        } elseif (!$error) {
             if ($u && $u['email']) {
                 $st = db()->prepare('SELECT COUNT(*) FROM claves_recuperacion WHERE usuario_id = ? AND creado > NOW() - INTERVAL 1 HOUR');
                 $st->execute([$u['id']]);
