@@ -80,7 +80,7 @@ if (-not $dirs -and $dia) {
     $grupos = @(Get-ChildItem -LiteralPath $revisar -File -Recurse -Force -ErrorAction SilentlyContinue) | Group-Object {
         $n = [IO.Path]::GetFileNameWithoutExtension($_.Name) -replace '[_\-\s]*(19|20)\d{2}[_\-\.]?\d{2}[_\-\.]?\d{2}.*$', ''
         if (-not $n) { $n = $_.Extension.TrimStart('.') }
-        ($n + $_.Extension).ToLower()
+        $n + $_.Extension.ToLower()
     }
     $dirs = $grupos
 }

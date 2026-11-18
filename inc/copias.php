@@ -102,6 +102,17 @@ function revisar_carpetas(array $carpetas, $diaria = false) {
     return [$carpetas, $alertas];
 }
 
+// el reporte dice que en el disco no esta la carpeta de hoy: no es una copia hecha
+function copia_sin_hoy($c) { return strpos((string)($c['alertas'] ?? ''), 'no hay carpeta de hoy') !== false; }
+
+// alertas que no son de una carpeta en particular (ej. "no hay carpeta de hoy")
+function alertas_generales($c) {
+    $nombres = array_map('mb_strtolower', array_column(json_decode((string)($c['carpetas'] ?? ''), true) ?: [], 'nombre'));
+    return array_values(array_filter(explode("\n", (string)($c['alertas'] ?? '')), function ($a) use ($nombres) {
+        return trim($a) !== '' && !in_array(mb_strtolower(trim(explode(':', $a)[0])), $nombres, true);
+    }));
+}
+
 function correo_copia($id) {
     $para = array_values(array_unique(array_merge(correos_copias(), correos_aviso('copias_reporte'))));
     if (!$para || !correo_configurado()) return false;
@@ -110,17 +121,19 @@ function correo_copia($id) {
     $c = $st->fetch();
     if (!$c) return false;
     $ok = $c['estado'] === 'ok';
+    $sin_hoy = copia_sin_hoy($c);
+    $disco = json_decode((string)$c['disco'], true) ?: [];
+    $generales = alertas_generales($c);
     $td = 'padding:6px 8px;border-bottom:1px solid #eee;font-size:13px;vertical-align:top';
     $filas = '';
     foreach (json_decode((string)$c['carpetas'], true) ?: [] as $f) {
         $bien = ($f['estado'] ?? 'ok') === 'ok';
-        $filas .= '<tr><td style="' . $td . '">' . ($bien ? '✅' : '❌') . ' <b>' . e($f['nombre']) . '</b>' . (!empty($f['nota']) ? '<div style="color:' . ($bien ? '#666' : '#c62828') . ';font-size:12px">' . e($f['nota']) . '</div>' : '') . '</td>'
+        $filas .= '<tr><td style="' . $td . '">' . ($bien ? '✅' : '❌') . ' <b>' . e($f['nombre']) . '</b>' . (!empty($f['nota']) && !$bien ? '<div style="color:' . ($bien ? '#666' : '#c62828') . ';font-size:12px">' . e($f['nota']) . '</div>' : '') . '</td>'
             . '<td style="' . $td . ';text-align:right">' . number_format((int)$f['archivos'], 0, ',', '.') . '</td>'
             . '<td style="' . $td . ';text-align:right">' . mb_legible($f['mb']) . '</td>'
             . '<td style="' . $td . '">' . ($f['ultimo'] ? fecha_hora($f['ultimo']) : '—') . '</td></tr>';
     }
-    $tabla = $filas ? '<table style="border-collapse:collapse;width:100%"><tr style="background:#f6f6f6"><th style="' . $td . ';text-align:left">Carpeta</th><th style="' . $td . ';text-align:right">Archivos</th><th style="' . $td . ';text-align:right">Tamaño</th><th style="' . $td . ';text-align:left">Archivo más reciente</th></tr>' . $filas . '</table>' : '';
-    $disco = json_decode((string)$c['disco'], true) ?: [];
+    $tabla = $filas ? '<table style="border-collapse:collapse;width:100%"><tr style="background:#f6f6f6"><th style="' . $td . ';text-align:left">' . (!empty($disco['dia']) ? 'Copia' : 'Carpeta') . '</th><th style="' . $td . ';text-align:right">Archivos</th><th style="' . $td . ';text-align:right">Tamaño</th><th style="' . $td . ';text-align:left">Archivo más reciente</th></tr>' . $filas . '</table>' : '';
     $info = [];
     if (!empty($disco['dia'])) $info[] = 'Carpeta del día ' . $disco['dia'];
     if (!empty($disco['etiqueta'])) $info[] = 'Disco ' . $disco['etiqueta'];
@@ -129,15 +142,16 @@ function correo_copia($id) {
     $html = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;border:1px solid #ddd">'
         . '<div style="background:#000;color:#ffcd11;padding:14px 20px;font-weight:bold;letter-spacing:1px">AGRO-COSTA · COPIA DE SEGURIDAD</div>'
         . '<div style="padding:20px;color:#222">'
-        . '<div style="padding:12px 14px;margin-bottom:14px;font-size:15px;background:' . ($ok ? '#e8f5e9;color:#1b5e20' : '#ffebee;color:#b71c1c') . '"><b>' . ($ok ? 'Copia hecha, todo en orden' : 'Copia hecha, pero hay que revisar') . '</b></div>'
-        . '<p style="margin:0 0 4px"><b>' . e($c['persona']) . '</b> hizo la copia el ' . fecha_hora($c['fecha']) . ($c['origen'] === 'manual' ? ' (registrada a mano en la plataforma)' : '') . '.</p>'
+        . '<div style="padding:12px 14px;margin-bottom:14px;font-size:15px;background:' . ($ok ? '#e8f5e9;color:#1b5e20' : '#ffebee;color:#b71c1c') . '"><b>' . ($ok ? 'Copia hecha, todo en orden' : ($sin_hoy ? 'No hay copia de hoy' : 'Copia hecha, pero hay que revisar')) . '</b>'
+        . ($generales ? '<div style="font-size:13px;margin-top:4px">' . implode('<br>', array_map('e', $generales)) . '</div>' : '') . '</div>'
+        . '<p style="margin:0 0 4px"><b>' . e($c['persona']) . '</b> ' . ($sin_hoy ? 'revisó el disco' : 'hizo la copia') . ' el ' . fecha_hora($c['fecha']) . ($c['origen'] === 'manual' ? ' (registrada a mano en la plataforma)' : '') . '.' . ($sin_hoy ? ' Lo que se ve abajo es la última copia que hay en el disco.' : '') . '</p>'
         . ($info ? '<p style="margin:0 0 14px;color:#666;font-size:12px">' . e(implode(' · ', $info)) . '</p>' : '')
         . $tabla
         . ($c['nota'] ? '<p style="margin-top:12px"><b>Nota:</b> ' . nl2br(e($c['nota'])) . '</p>' : '')
         . ($c['captura'] ? '<p style="font-size:13px">Trae captura de pantalla: se ve en la plataforma.</p>' : '')
         . '<p style="margin-top:16px"><a href="' . e(APP_URL . '/copias.php?id=' . $c['id']) . '" style="color:#000">Ver en la plataforma →</a></p>'
         . '</div></div>';
-    return enviar_correo($para, '', ($ok ? '✅' : '⚠️') . ' Copia de seguridad ' . date('d/m', strtotime($c['fecha'])) . ' · ' . $c['persona'] . ($ok ? '' : ' · revisar'), $html);
+    return enviar_correo($para, '', ($ok ? '✅' : '⚠️') . ($sin_hoy ? ' Sin copia de hoy ' : ' Copia de seguridad ') . date('d/m', strtotime($c['fecha'])) . ' · ' . $c['persona'] . ($ok || $sin_hoy ? '' : ' · revisar'), $html);
 }
 
 // el script del disco con la direccion y la clave ya puestas

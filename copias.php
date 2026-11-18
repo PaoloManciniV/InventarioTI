@@ -81,7 +81,7 @@ require __DIR__ . '/inc/header.php';
 <div class="tarjeta modal-caja" role="dialog" aria-modal="true">
   <a class="modal-x" href="copias.php" aria-label="Cerrar">×</a>
   <h2>Copia del <?= fecha_hora($ver['fecha']) ?></h2>
-  <p style="margin-top:-4px"><span class="chip <?= $ver['estado'] === 'ok' ? 'chip-disponible' : 'chip-danado' ?>"><?= $ver['estado'] === 'ok' ? 'En orden' : 'Revisar' ?></span>
+  <p style="margin-top:-4px"><span class="chip <?= $ver['estado'] === 'ok' ? 'chip-disponible' : 'chip-danado' ?>"><?= $ver['estado'] === 'ok' ? 'En orden' : (copia_sin_hoy($ver) ? 'Sin copia de hoy' : 'Revisar') ?></span>
     <b><?= e($ver['persona']) ?></b>
     <span class="tenue"><?= $ver['origen'] === 'manual' ? '· registrada a mano' . ($ver['registro'] ? ' por ' . e($ver['registro']) : '') : '· reportada por el script del disco' ?></span></p>
   <?php $disco = json_decode((string)$ver['disco'], true) ?: []; $info = [];
@@ -90,12 +90,13 @@ require __DIR__ . '/inc/header.php';
     if (!empty($disco['total_gb'])) $info[] = 'libres ' . (int)$disco['libre_gb'] . ' de ' . (int)$disco['total_gb'] . ' GB';
     if ($ver['pc']) $info[] = 'PC ' . $ver['pc'] . ($ver['usuario_windows'] ? ' · usuario de Windows ' . $ver['usuario_windows'] : '');
     if ($ver['ip']) $info[] = 'IP ' . $ver['ip']; ?>
+  <?php if ($gen = alertas_generales($ver)): ?><div class="aviso aviso-error" style="margin:8px 0"><?= implode('<br>', array_map('e', $gen)) ?></div><?php endif; ?>
   <?php if ($info): ?><p class="tenue mono" style="font-size:12px"><?= e(implode(' · ', $info)) ?></p><?php endif; ?>
   <?php $carps = json_decode((string)$ver['carpetas'], true) ?: []; if ($carps): ?>
   <div class="tabla-envoltura"><table class="tabla">
     <thead><tr><th>Carpeta</th><th style="text-align:right">Archivos</th><th style="text-align:right">Tamaño</th><th>Archivo más reciente</th></tr></thead><tbody>
     <?php foreach ($carps as $c): $bien = ($c['estado'] ?? 'ok') === 'ok'; ?>
-      <tr><td><?= $bien ? '<span style="color:var(--verde)">✔</span>' : '<span style="color:var(--rojo)">✘</span>' ?> <b><?= e($c['nombre']) ?></b><?= !empty($c['nota']) ? '<small style="color:' . ($bien ? 'var(--tenue)' : 'var(--rojo)') . '">' . e($c['nota']) . '</small>' : '' ?></td>
+      <tr><td><?= $bien ? '<span style="color:var(--verde)">✔</span>' : '<span style="color:var(--rojo)">✘</span>' ?> <b><?= e($c['nombre']) ?></b><?= !empty($c['nota']) && !$bien ? '<small style="color:' . ($bien ? 'var(--tenue)' : 'var(--rojo)') . '">' . e($c['nota']) . '</small>' : '' ?></td>
         <td class="mono" style="text-align:right"><?= number_format((int)$c['archivos'], 0, ',', '.') ?></td>
         <td class="mono" style="text-align:right"><?= mb_legible($c['mb']) ?></td>
         <td><?= $c['ultimo'] ? fecha_hora($c['ultimo']) : '—' ?></td></tr>
@@ -137,7 +138,7 @@ require __DIR__ . '/inc/header.php';
         <td><?= e($c['persona']) ?><small class="tenue"><?= $c['origen'] === 'manual' ? 'A mano, con captura' : e($c['pc'] ? 'PC ' . $c['pc'] : 'Script del disco') ?></small></td>
         <td class="mono"><?= $carps ? $bien . ' de ' . count($carps) . ' bien' : '—' ?></td>
         <td class="mono" style="text-align:right"><?= $c['total_mb'] !== null ? mb_legible($c['total_mb']) : '—' ?></td>
-        <td><a href="?id=<?= $c['id'] ?>" style="text-decoration:none"><span class="chip <?= $c['estado'] === 'ok' ? 'chip-disponible' : 'chip-danado' ?>"><?= $c['estado'] === 'ok' ? 'En orden' : 'Revisar' ?></span></a></td></tr>
+        <td><a href="?id=<?= $c['id'] ?>" style="text-decoration:none"><span class="chip <?= $c['estado'] === 'ok' ? 'chip-disponible' : 'chip-danado' ?>"><?= $c['estado'] === 'ok' ? 'En orden' : (copia_sin_hoy($c) ? 'Sin copia de hoy' : 'Revisar') ?></span></a></td></tr>
     <?php endforeach; ?>
     </tbody></table></div>
 
