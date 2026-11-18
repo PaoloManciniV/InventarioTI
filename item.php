@@ -20,6 +20,28 @@ if ($editar && !es_admin()) $editar = false;
 if (!$item && !es_admin()) { http_response_code(403); exit; }
 
 $error = '';
+// cambia el responsable sin acta; devuelve [ok, mensaje]
+function cambiar_responsable($item, $nuevo, $motivo, $fecha) {
+    $id = (int)$item['id'];
+    $antes_id = (int)($item['colaborador_id'] ?? 0);
+    $nombre = function ($cid) { if (!$cid) return 'Sistemas'; $s = db()->prepare('SELECT nombre FROM colaboradores WHERE id = ?'); $s->execute([$cid]); return $s->fetchColumn() ?: null; };
+    if (!in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)) return [false, 'Con el equipo ' . estados_item()[$item['estado']] . ' no se cambia el responsable aquí'];
+    if ($motivo === '') return [false, 'Escribe el motivo del cambio'];
+    if ($nuevo === $antes_id) return [false, 'Ese ya es el responsable'];
+    if ($nuevo && !$nombre($nuevo)) return [false, 'Colaborador no válido'];
+    $de = $nombre($antes_id) ?: '¿?';
+    $a = $nombre($nuevo);
+    if ($antes_id) guardar_ultimo_dueno($id);
+    // si estaba por ubicar (extraviado) y aparecio, queda asignado a quien lo tiene o disponible en sistemas
+    $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado', 'extraviado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado', 'extraviado'], true) ? 'disponible' : $item['estado']);
+    db()->prepare('UPDATE items SET colaborador_id = ?, estado = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')->execute([$nuevo ?: null, $estado, $id]);
+    if (!$nuevo) quitar_ip_si_libre($id);
+    db()->prepare('INSERT INTO movimientos (item_id, tipo, colaborador_id, usuario_id, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?)')
+        ->execute([$id, 'cambio_dueno', $nuevo ?: null, usuario()['id'], 'Cambio de responsable: de ' . $de . ' a ' . $a . ' — ' . $motivo, $fecha . ' ' . date('H:i:s')]);
+    auditar('items', $id, ['responsable' => $de, 'estado' => $item['estado']], ['responsable' => $a, 'estado' => $estado], $motivo);
+    return [true, 'Responsable cambiado: ahora lo tiene ' . $a];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
     verificar_csrf();
     $accion = $_POST['accion'] ?? 'guardar';
@@ -44,28 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
 
     // cambiar el responsable a mano (sin acta): queda en la hoja de vida, en quien lo ha tenido y en ver cambios
     if ($accion === 'propietario' && $item) {
-        $nuevo = (int)($_POST['colaborador_id'] ?? 0);
-        $motivo = trim($_POST['motivo'] ?? '');
         $fecha = preg_match('#^\d{4}-\d{2}-\d{2}$#', $_POST['fecha'] ?? '') && $_POST['fecha'] <= date('Y-m-d') ? $_POST['fecha'] : date('Y-m-d');
-        $antes_id = (int)($item['colaborador_id'] ?? 0);
-        $nombre = function ($cid) { if (!$cid) return 'Sistemas'; $s = db()->prepare('SELECT nombre FROM colaboradores WHERE id = ?'); $s->execute([$cid]); return $s->fetchColumn() ?: '¿?'; };
-        if (!in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)) flash('Con el equipo ' . estados_item()[$item['estado']] . ' no se cambia el responsable aquí', 'error');
-        elseif ($motivo === '') flash('Escribe el motivo del cambio', 'error');
-        elseif ($nuevo === $antes_id) flash('Ese ya es el responsable', 'error');
-        elseif ($nuevo && !$nombre($nuevo)) flash('Colaborador no válido', 'error');
-        else {
-            $de = $nombre($antes_id);
-            $a = $nombre($nuevo);
-            if ($antes_id) guardar_ultimo_dueno($id);
-            // si estaba por ubicar (extraviado) y aparecio, queda asignado a quien lo tiene o disponible en sistemas
-            $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado', 'extraviado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado', 'extraviado'], true) ? 'disponible' : $item['estado']);
-            db()->prepare('UPDATE items SET colaborador_id = ?, estado = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')->execute([$nuevo ?: null, $estado, $id]);
-            if (!$nuevo) quitar_ip_si_libre($id);
-            db()->prepare('INSERT INTO movimientos (item_id, tipo, colaborador_id, usuario_id, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?)')
-                ->execute([$id, 'cambio_dueno', $nuevo ?: null, usuario()['id'], 'Cambio de responsable: de ' . $de . ' a ' . $a . ' — ' . $motivo, $fecha . ' ' . date('H:i:s')]);
-            auditar('items', $id, ['responsable' => $de, 'estado' => $item['estado']], ['responsable' => $a, 'estado' => $estado], $motivo);
-            flash('Responsable cambiado: ahora lo tiene ' . $a);
-        }
+        [$ok, $msg] = cambiar_responsable($item, (int)($_POST['colaborador_id'] ?? 0), trim($_POST['motivo'] ?? ''), $fecha);
+        flash($msg, $ok ? 'ok' : 'error');
         ir('item.php?id=' . $id);
     }
 
@@ -158,6 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             db()->prepare("UPDATE items SET etiqueta = ?, $set, actualizado = NOW() WHERE id = ?")
                 ->execute(array_merge([$etiqueta], array_values($d), [$id]));
             auditar('items', $id, $item, array_merge(['etiqueta' => $etiqueta], $d));
+            // responsable cambiado desde la edicion
+            if (isset($_POST['colaborador_id']) && $_POST['colaborador_id'] !== '' && (int)$_POST['colaborador_id'] !== (int)($item['colaborador_id'] ?? 0)) {
+                [$ok, $msg] = cambiar_responsable($item, (int)$_POST['colaborador_id'], trim($_POST['motivo_resp'] ?? '') ?: 'Cambiado al editar el equipo', date('Y-m-d'));
+                flash($ok ? 'Guardado. ' . $msg : 'Guardado, pero el responsable no cambió: ' . $msg, $ok ? 'ok' : 'error');
+            }
         } else {
             $ph = implode(',', array_fill(0, count($cols) + 1, '?'));
             db()->prepare('INSERT INTO items (etiqueta, ' . implode(',', $cols) . ") VALUES ($ph)")
@@ -231,6 +239,15 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Tipo de PC (si es computador)</label><select name="formato">
       <?php foreach (formatos_pc() as $k => $v): ?><option value="<?= $k ?>" <?= ($item['formato'] ?? '') === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
     <div class="campo"><label>Ubicacion fisica</label><input name="ubicacion" value="<?= e($item['ubicacion'] ?? '') ?>" placeholder="1er piso · Recepción"></div>
+    <?php if ($id && in_array($item['estado'] ?? '', ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)):
+      $gente_r = db()->query('SELECT id, nombre, area FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll(); ?>
+    <div class="campo"><label>Responsable (quién lo tiene)</label><select name="colaborador_id" data-buscar data-resp="<?= (int)($item['colaborador_id'] ?? 0) ?>">
+      <option value="0" <?= empty($item['colaborador_id']) ? 'selected' : '' ?>>Sistemas (sin responsable)</option>
+      <?php foreach ($gente_r as $g): ?><option value="<?= $g['id'] ?>" <?= (int)$g['id'] === (int)($item['colaborador_id'] ?? 0) ? 'selected' : '' ?>><?= e($g['nombre']) ?><?= $g['area'] ? ' · ' . e($g['area']) : '' ?></option><?php endforeach; ?>
+    </select><small>Si lo cambias queda en la hoja de vida y en Ver cambios</small></div>
+    <div class="campo" data-motivo-resp hidden><label>Motivo del cambio de responsable</label><input name="motivo_resp" placeholder="Ej. el equipo es de él, estaba mal"></div>
+    <script>document.querySelector('[data-resp]').addEventListener('change', function () { document.querySelector('[data-motivo-resp]').hidden = this.value === this.dataset.resp; });</script>
+    <?php endif; ?>
     <div class="campo"><label>Orden en la lista (opcional)</label><input type="number" min="0" name="orden" value="<?= e($item['orden'] ?? '') ?>" placeholder="1 = primero"><small>Para impresoras y access points: de 1er piso hacia arriba</small></div>
     <div class="campo"><label>IP</label><input name="ip" value="<?= e($item['ip'] ?? '') ?>" placeholder="192.168.0.10" inputmode="decimal"></div>
     <div class="campo"><label>MAC</label><input name="mac" value="<?= e($item['mac'] ?? '') ?>"></div>
