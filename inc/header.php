@@ -20,6 +20,7 @@ $enlaces = [
     'herramientas' => ['herramientas.php', 'Herramientas', '&#9874;'],
 ];
 $enlaces['copias'] = ['copias.php', 'Copias de seguridad', '&#9921;'];
+$enlaces['web'] = ['pagina_web.php', 'Página web', '&#127760;'];
 $enlaces['wifi'] = ['wifi.php', 'Redes WiFi', '&#128274;'];
 $enlaces['importar'] = ['importar.php', 'Importar Excel', '&#8682;'];
 $enlaces['config'] = ['config_panel.php', 'Configuracion', '&#9881;'];
