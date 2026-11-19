@@ -47,6 +47,7 @@ function avisos_catalogo() {
         'inv_cambios'       => ['Inventario', 'Equipos que se ingresan o cambian'],
         'copias_reporte'    => ['Copias de seguridad', 'Cada copia que se reporta'],
         'copias_atraso'     => ['Copias de seguridad', 'Cuando la copia está atrasada'],
+        'web_actualizada'   => ['Página web', 'Cada vez que se sube el inventario a la tienda'],
         'sol_radicada'      => ['Solicitudes a administración', 'Nueva solicitud por aprobar'],
         'sol_aprobacion'    => ['Solicitudes a administración', 'Aprobada o rechazada'],
         'sol_estado'        => ['Solicitudes a administración', 'Entregada, en compra, recibida o cancelada'],

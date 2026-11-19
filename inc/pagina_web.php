@@ -89,3 +89,64 @@ function estado_web_ahora() {
     $st = db_web()->query('SELECT id, cargando, TIMESTAMPDIFF(SECOND, inicio_carga, NOW()) seg FROM estado_inventario WHERE id IN (1, 2) AND cargando = 1');
     return $st->fetchAll();
 }
+
+// ---------------------------------------------------------------- aviso por correo
+// a quien: MAIL_WEB del .env (si no esta, los mismos de las copias: MAIL_RESPALDOS o MAIL_INVENTARIO) + los que tengan marcado "Página web" en Configuración > Avisos
+function correos_web() {
+    $l = env('MAIL_WEB', '') ?: (env('MAIL_RESPALDOS', '') ?: env('MAIL_INVENTARIO', ''));
+    $fijos = array_values(array_filter(array_map('trim', preg_split('/[,;]/', (string)$l))));
+    return array_values(array_unique(array_merge($fijos, correos_aviso('web_actualizada'))));
+}
+
+function correo_web(array $a) {
+    $r = $a['fila'];
+    $av = $a['aviso'];
+    $tipos = tipos_actualizacion();
+    $bien = $a['tipo'] !== 'cancelada';
+    $td = 'padding:7px 10px;border-bottom:1px solid #eee';
+    $fila = function ($k, $v) use ($td) { return '<tr><td style="' . $td . ';color:#666">' . $k . '</td><td style="' . $td . '"><b>' . $v . '</b></td></tr>'; };
+    $cambios = $r['nuevas'] !== null || $r['cambiadas'] !== null || $r['eliminadas'] !== null
+        ? (int)$r['nuevas'] . ' nuevas · ' . (int)$r['cambiadas'] . ' cambiadas · ' . (int)$r['eliminadas'] . ' eliminadas'
+        : ($a['tipo'] === 'completa' ? 'Todo el inventario' : '—');
+    $html = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #ddd">'
+        . '<div style="background:#000;color:#ffcd11;padding:14px 20px;font-weight:bold;letter-spacing:1px">AGRO-COSTA · PÁGINA WEB</div>'
+        . '<div style="padding:20px;color:#222">'
+        . '<div style="padding:12px 14px;margin-bottom:14px;font-size:15px;background:' . ($bien ? '#e8f5e9;color:#1b5e20' : '#ffebee;color:#b71c1c') . '"><b>'
+        . ($bien ? 'Se actualizó el inventario de la página' : 'La actualización se canceló o falló: la página no cambió') . '</b></div>'
+        . '<table style="border-collapse:collapse;width:100%;font-size:14px">'
+        . $fila('Tipo', e($tipos[$a['tipo']][0]))
+        . $fila('Día', date('d/m/Y', strtotime($r['fin'])))
+        . $fila('Hora', date('g:i a', strtotime($r['inicio'])) . ' → ' . date('g:i a', strtotime($r['fin'])))
+        . $fila('Duración', duracion_txt($r['segundos']))
+        . ($av ? $fila('Página en aviso', duracion_txt($av['segundos'])) : '')
+        . $fila('Cambios', $cambios)
+        . $fila('Quién', $r['usuario'] ? e($r['usuario']) . ($r['equipo'] ? ' · ' . e($r['equipo']) : '') : '—')
+        . '</table>'
+        . '<p style="margin-top:16px"><a href="' . e(rtrim(env('APP_URL', ''), '/')) . '/pagina_web.php" style="color:#000">Ver el historial →</a></p></div></div>';
+    $asunto = ($bien ? '🌐 Página web actualizada' : '⚠️ Actualización de la página cancelada') . ' · ' . date('d/m g:i a', strtotime($r['fin'])) . ($r['usuario'] ? ' · ' . $r['usuario'] : '');
+    $para = correos_web();
+    return $para ? enviar_correo($para, '', $asunto, $html) : false;
+}
+
+// avisa las actualizaciones nuevas (la primera vez, las de las ultimas 6 horas)
+// espera 2 minutos despues de terminar para que el actualizador alcance a dejar quien y cuantas
+function avisar_web_nuevas() {
+    $st = db()->prepare("SELECT valor FROM ajustes WHERE clave = 'web_ultimo_aviso'");
+    $st->execute();
+    $desde = $st->fetchColumn();
+    $guardar = function ($v) { db()->prepare("INSERT INTO ajustes (clave, valor) VALUES ('web_ultimo_aviso', ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)")->execute([$v]); };
+    $hasta = gmdate('Y-m-d H:i:s', time() - 120);
+    if (!$desde) $desde = gmdate('Y-m-d H:i:s', time() - 6 * 3600); // la primera vez: lo de las ultimas 6 horas
+    // si el actualizador sigue corriendo, se espera a la proxima vuelta
+    foreach (estado_web_ahora() as $h) if ((int)$h['id'] === 2) return 0;
+    $n = 0;
+    $lista = array_reverse(actualizaciones_web(gmdate('Y-m-d H:i:s', strtotime($desde . ' UTC') - 6 * 3600), $hasta));
+    foreach ($lista as $a) {
+        if ($a['fila']['fin_utc'] <= $desde || $a['tipo'] === 'sin_cambios') continue;
+        // si el correo falla se intenta otra vez en la proxima vuelta
+        if (!correo_web($a)) { $guardar(gmdate('Y-m-d H:i:s', strtotime($a['fila']['fin_utc'] . ' UTC') - 1)); return $n; }
+        $n++;
+    }
+    $guardar($hasta);
+    return $n;
+}
