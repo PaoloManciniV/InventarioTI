@@ -42,15 +42,18 @@ function duracion_txt($s) {
 // arma las actualizaciones: cada vuelta de "Sincronizar" (proceso 2) con el rato en que la pagina estuvo en aviso
 // (proceso 1 dentro de ese rato); un proceso 1 suelto es el boton viejo "Subir cambios" (carga completa)
 function actualizaciones_web($desde, $hasta) {
-    $st = db_web()->prepare('SELECT * FROM web_actualizaciones WHERE proceso IN (1, 2) AND fin_utc >= ? AND fin_utc < ? ORDER BY fin_utc, id');
+    $st = db_web()->prepare('SELECT * FROM web_actualizaciones WHERE proceso IN (1, 2, 3) AND fin_utc >= ? AND fin_utc < ? ORDER BY fin_utc, id');
     $st->execute([$desde, $hasta]);
     $filas = $st->fetchAll();
     $sync = [];
     $sueltas = [];
+    $items = [];
     foreach ($filas as $f) {
         $f['inicio'] = hora_web($f['inicio_utc'] ?: $f['fin_utc']);
         $f['fin'] = hora_web($f['fin_utc']);
-        if ((int)$f['proceso'] === 2) { $f['aviso'] = null; $sync[] = $f; } else $sueltas[] = $f;
+        if ((int)$f['proceso'] === 2) { $f['aviso'] = null; $sync[] = $f; }
+        elseif ((int)$f['proceso'] === 3) $items[] = $f;
+        else $sueltas[] = $f;
     }
     $res = [];
     foreach ($sueltas as $p1) {
@@ -65,6 +68,8 @@ function actualizaciones_web($desde, $hasta) {
         $tipo = $s2['resultado'] !== 'ok' ? 'cancelada' : ($s2['aviso'] ? 'cambios' : 'sin_cambios');
         $res[] = ['tipo' => $tipo, 'fila' => $s2, 'aviso' => $s2['aviso']];
     }
+    // proceso 3: boton "Actualizar items" (cambios puntuales; el cliente no ve aviso)
+    foreach ($items as $p3) $res[] = ['tipo' => $p3['resultado'] === 'ok' ? 'items' : 'cancelada', 'fila' => $p3, 'aviso' => null];
     usort($res, fn($a, $b) => strcmp($b['fila']['fin_utc'], $a['fila']['fin_utc']) ?: $b['fila']['id'] <=> $a['fila']['id']);
     return $res;
 }
@@ -74,6 +79,7 @@ function tipos_actualizacion() {
         'cambios' => ['Subió cambios', 'chip-disponible'],
         'sin_cambios' => ['Sin cambios', 'chip-baja'],
         'cancelada' => ['Cancelada', 'chip-danado'],
+        'items' => ['Ítems puntuales', 'chip-prestado'],
         'completa' => ['Carga completa', 'chip-asignado'],
     ];
 }

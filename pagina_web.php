@@ -26,7 +26,7 @@ if (!web_configurada()) {
         $ahora = estado_web_ahora();
         // la ultima que de verdad cambio la pagina (en cualquier mes)
         $ul = actualizaciones_web(gmdate('Y-m-d H:i:s', strtotime('-90 days')), gmdate('Y-m-d H:i:s', time() + 3600));
-        foreach ($ul as $a) if (in_array($a['tipo'], ['cambios', 'completa'], true)) { $ultima = $a; break; }
+        foreach ($ul as $a) if (in_array($a['tipo'], ['cambios', 'completa', 'items'], true)) { $ultima = $a; break; }
     } catch (Throwable $t) {
         $m = $t->getMessage();
         $error = stripos($m, 'web_actualizaciones') !== false
@@ -88,7 +88,7 @@ $mes_txt = fn($m) => $nom_mes[substr($m, 5, 2)] . ' ' . substr($m, 0, 4);
       <b style="color:var(--verde);font-size:22px"><?= e(hace_dia_web($u['fin'])) ?></b>
       <span class="tenue"><?= fecha_hora($u['fin']) ?><?= $u['usuario'] ? ' · ' . e($u['usuario']) : '' ?></span>
     <?php else: ?><b style="font-size:22px">—</b><span class="tenue">Sin registro en los últimos 90 días</span><?php endif; ?></div>
-  <div class="kpi"><small>Con cambios en <?= e($mes_txt($mes)) ?></small><b><?= $conteo['cambios'] + $conteo['completa'] ?></b>
+  <div class="kpi"><small>Con cambios en <?= e($mes_txt($mes)) ?></small><b><?= $conteo['cambios'] + $conteo['completa'] + $conteo['items'] ?></b>
     <span class="tenue"><?= $conteo['sin_cambios'] ?> sin cambios · <?= $conteo['cancelada'] ?> cancelada<?= $conteo['cancelada'] === 1 ? '' : 's' ?></span></div>
   <div class="kpi"><small>Página en aviso (promedio)</small><b><?= $aviso_n ? duracion_txt((int)round($aviso_total / $aviso_n)) : '—' ?></b>
     <span class="tenue">Lo que el cliente ve el aviso de actualización</span></div>
@@ -115,6 +115,6 @@ $mes_txt = fn($m) => $nom_mes[substr($m, 5, 2)] . ' ' . substr($m, 0, 4);
   <?php endforeach; ?>
   </tbody></table></div>
 
-<p class="tenue" style="font-size:13px"><b>Subió cambios:</b> Sincronizar encontró diferencias y las aplicó. <b>Sin cambios:</b> comparó y la página ya estaba igual. <b>Cancelada:</b> se canceló o falló y la página no cambió. <b>Carga completa:</b> botón “Subir cambios” (borra y sube todo). <b>Página en aviso:</b> el rato en que el cliente vio el aviso de actualización.</p>
+<p class="tenue" style="font-size:13px"><b>Subió cambios:</b> Sincronizar encontró diferencias y las aplicó. <b>Sin cambios:</b> comparó y la página ya estaba igual. <b>Cancelada:</b> se canceló o falló y la página no cambió. <b>Ítems puntuales:</b> botón “Actualizar ítems” (solo las referencias que se pidieron; el cliente no ve aviso). <b>Carga completa:</b> botón “Subir cambios” (borra y sube todo). <b>Página en aviso:</b> el rato en que el cliente vio el aviso de actualización.</p>
 <?php endif; ?>
 <?php require __DIR__ . '/inc/footer.php'; ?>
