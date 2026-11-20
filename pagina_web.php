@@ -9,6 +9,14 @@ $tipo = $_GET['tipo'] ?? '';
 $tipos = tipos_actualizacion();
 if ($tipo !== '' && !isset($tipos[$tipo])) $tipo = '';
 
+// boton "Revisar y avisar ahora" (lo mismo que hace el cron cada 5 minutos)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin() && ($_POST['accion'] ?? '') === 'avisar') {
+    verificar_csrf();
+    [$ok, $txt] = correr_aviso_web(usuario()['nombre']);
+    flash('Aviso por correo: ' . $txt, $ok ? 'ok' : 'error');
+    ir('pagina_web.php');
+}
+
 $error = '';
 $lista = [];
 $ultima = null;
@@ -78,6 +86,17 @@ $mes_txt = fn($m) => $nom_mes[substr($m, 5, 2)] . ' ' . substr($m, 0, 4);
   <div class="aviso aviso-error"><?= e($error) ?></div>
 <?php else: ?>
 
+<?php if (es_admin()): $ea = estado_aviso_web(); ?>
+  <form method="post" class="aviso<?= $ea && !$ea['ok'] ? ' aviso-error' : '' ?>" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <?= csrf_campo() ?><input type="hidden" name="accion" value="avisar">
+    <span><b>Aviso por correo:</b>
+      <?php if (!$ea): ?>el cron todavía no ha corrido ni una vez (revisa en Hestia el cron de <span class="mono">pagina_web_cron.php</span>).
+      <?php else: ?>última revisión <?= e(fecha_hora($ea['fecha'])) ?> (<?= $ea['quien'] === 'cron' ? 'cron' : e($ea['quien']) ?>): <?= e($ea['txt']) ?>.
+        <?php if ($ea['quien'] === 'cron' && strtotime($ea['fecha']) < time() - 900): ?> <b>El cron lleva más de 15 minutos sin correr.</b><?php endif; ?>
+      <?php endif; ?></span>
+    <button class="btn btn-sm btn-borde">Revisar y avisar ahora</button>
+  </form>
+<?php endif; ?>
 <?php foreach ($ahora as $h): ?>
   <div class="aviso"><b><?= (int)$h['id'] === 1 ? 'La página está en aviso ahora mismo' : 'El actualizador está corriendo ahora' ?></b> · desde hace <?= duracion_txt(max(0, (int)$h['seg'])) ?><?= (int)$h['seg'] > 1800 ? ' (si nadie lo está usando, quedó prendida la bandera: revisa estado_inventario)' : '' ?></div>
 <?php endforeach; ?>

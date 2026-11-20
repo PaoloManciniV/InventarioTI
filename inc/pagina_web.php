@@ -144,9 +144,42 @@ function avisar_web_nuevas() {
     foreach ($lista as $a) {
         if ($a['fila']['fin_utc'] <= $desde || $a['tipo'] === 'sin_cambios') continue;
         // si el correo falla se intenta otra vez en la proxima vuelta
-        if (!correo_web($a)) { $guardar(gmdate('Y-m-d H:i:s', strtotime($a['fila']['fin_utc'] . ' UTC') - 1)); return $n; }
+        if (!correo_web($a)) {
+            $guardar(gmdate('Y-m-d H:i:s', strtotime($a['fila']['fin_utc'] . ' UTC') - 1));
+            $GLOBALS['web_aviso_error'] = 'no se pudo enviar el correo: ' . ($GLOBALS['correo_error'] ?? '¿?');
+            return $n;
+        }
         $n++;
     }
     $guardar($hasta);
     return $n;
+}
+
+// revisa y avisa, y deja anotado cuando corrio y como le fue (se ve en el modulo)
+function correr_aviso_web($quien) {
+    $GLOBALS['web_aviso_error'] = '';
+    try {
+        if (!web_configurada()) throw new RuntimeException('falta WEB_DB_* en el .env');
+        if (!correo_configurado()) throw new RuntimeException('el correo no está configurado');
+        if (!correos_web()) throw new RuntimeException('no hay a quién enviar (MAIL_WEB, MAIL_RESPALDOS o MAIL_INVENTARIO)');
+        $n = avisar_web_nuevas();
+        $txt = $GLOBALS['web_aviso_error'] ?: ($n ? $n . ' correo' . ($n > 1 ? 's' : '') . ' enviado' . ($n > 1 ? 's' : '') : 'nada nuevo para avisar');
+        $ok = $GLOBALS['web_aviso_error'] === '';
+    } catch (Throwable $t) {
+        $txt = $t->getMessage();
+        $ok = false;
+    }
+    try {
+        db()->prepare("INSERT INTO ajustes (clave, valor) VALUES ('web_aviso_estado', ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)")
+            ->execute([json_encode(['fecha' => date('Y-m-d H:i:s'), 'quien' => $quien, 'ok' => $ok, 'txt' => $txt], JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable $t) { }
+    return [$ok, $txt];
+}
+
+function estado_aviso_web() {
+    try {
+        $st = db()->prepare("SELECT valor FROM ajustes WHERE clave = 'web_aviso_estado'");
+        $st->execute();
+        return json_decode((string)$st->fetchColumn(), true) ?: null;
+    } catch (Throwable $t) { return null; }
 }
