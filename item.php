@@ -202,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
                 $item['estado'] = $d['estado'];
             }
             // responsable cambiado desde la edicion
+            $conectar_despues = col_conectado() && ($_POST['acc_id'] ?? '') !== '';
             // colaborador nuevo escrito en el campo: se crea (o se reactiva si ya existia con ese nombre)
             if (($_POST['colaborador_id'] ?? '') === 'nuevo' && ($nn = trim(preg_replace('/\s+/', ' ', $_POST['nuevo_colaborador'] ?? ''))) !== '' && mb_strlen($nn) <= 120) {
                 $st = db()->prepare('SELECT id, activo FROM colaboradores WHERE LOWER(nombre) = LOWER(?) ORDER BY activo DESC LIMIT 1');
@@ -218,6 +219,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             if (isset($_POST['colaborador_id']) && ctype_digit((string)$_POST['colaborador_id']) && (int)$_POST['colaborador_id'] !== (int)($item['colaborador_id'] ?? 0)) {
                 [$ok, $msg] = cambiar_responsable($item, (int)$_POST['colaborador_id'], trim($_POST['motivo_resp'] ?? '') ?: 'Cambiado al editar el equipo', date('Y-m-d'));
                 flash($ok ? 'Guardado. ' . $msg : 'Guardado, pero el responsable no cambió: ' . $msg, $ok ? 'ok' : 'error');
+            }
+            if ($conectar_despues) {
+                $st = db()->prepare('SELECT * FROM items WHERE id = ?');
+                $st->execute([$id]);
+                [$ok, $msg] = conectar_accesorio($st->fetch(), $_POST['acc_id'], $_POST['acc_nuevo'] ?? '', $_POST['acc_categoria'] ?? 0);
+                flash(($ok ? 'Guardado. ' : 'Guardado, pero el accesorio no: ') . $msg, $ok ? 'ok' : 'error');
             }
         } else {
             $ph = implode(',', array_fill(0, count($cols) + 1, '?'));
@@ -265,6 +272,21 @@ function conectar_accesorio(array $padre, $acc, $nombre_nuevo, $cat_nueva) {
     if (!$a || $acc === $pid) return [false, 'Accesorio no válido'];
     if (!in_array($a['estado'], ['disponible', 'asignado', 'instalado'], true)) return [false, $a['etiqueta'] . ' está ' . (estados_item()[$a['estado']] ?? $a['estado']) . ': no se puede conectar'];
     if (!empty($a['conectado_a']) && (int)$a['conectado_a'] !== $pid) return [false, $a['etiqueta'] . ' ya está conectado a otro equipo: primero quítalo de allá'];
+    $quedan = null;
+    if ((int)$a['cantidad'] > 1) {
+        // hay varios iguales en un solo item: se descuenta 1 y la unidad que sale queda como item propio
+        db()->prepare('UPDATE items SET cantidad = cantidad - 1, actualizado = NOW() WHERE id = ?')->execute([$acc]);
+        $quedan = (int)$a['cantidad'] - 1;
+        registrar_movimiento($acc, 'salida', 'Salió 1 para ' . $padre['etiqueta'] . ' · quedan ' . $quedan);
+        auditar('items', $acc, ['cantidad' => $a['cantidad']], ['cantidad' => $quedan], 'Salió 1 como accesorio de ' . $padre['etiqueta']);
+        $etq = siguiente_etiqueta($a['categoria_id']);
+        db()->prepare("INSERT INTO items (etiqueta, nombre, marca, modelo, categoria_id, cantidad, estado, sede_id, condicion, especificaciones, creado) VALUES (?, ?, ?, ?, ?, 1, 'disponible', ?, ?, ?, NOW())")
+            ->execute([$etq, $a['nombre'], $a['marca'], $a['modelo'], $a['categoria_id'], $a['sede_id'], $a['condicion'], $a['especificaciones']]);
+        $acc = (int)db()->lastInsertId();
+        registrar_movimiento($acc, 'alta', 'Sale de ' . $a['etiqueta'] . ' (había ' . (int)$a['cantidad'] . ')');
+        $st->execute([$acc]);
+        $a = $st->fetch();
+    }
     // el accesorio va con su equipo: misma persona, mismo sitio
     $estado = !empty($padre['colaborador_id']) ? 'asignado' : 'instalado';
     db()->prepare('UPDATE items SET conectado_a = ?, colaborador_id = ?, estado = ?, ubicacion = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')
@@ -272,18 +294,18 @@ function conectar_accesorio(array $padre, $acc, $nombre_nuevo, $cat_nueva) {
     registrar_movimiento($acc, 'conectado', 'Conectado a ' . $padre['etiqueta'] . ' · ' . $padre['nombre']);
     registrar_movimiento($pid, 'accesorio', 'Se le conectó ' . $a['etiqueta'] . ' · ' . $a['nombre']);
     auditar('items', $acc, ['conectado a' => null], ['conectado a' => $padre['etiqueta']], 'Accesorio');
-    return [true, $a['etiqueta'] . ' (' . $a['nombre'] . ') quedó conectado a ' . $padre['etiqueta']];
+    return [true, $a['etiqueta'] . ' (' . $a['nombre'] . ') quedó conectado a ' . $padre['etiqueta'] . ($quedan !== null ? '. En el inventario quedan ' . $quedan : '')];
 }
 
 // campo para escoger el accesorio: uno disponible del inventario, o escribir uno nuevo y darle "+ Agregar"
 function campo_accesorio($excluir) {
-    $st = db()->prepare("SELECT i.id, i.etiqueta, i.nombre, cat.nombre categoria FROM items i LEFT JOIN categorias cat ON cat.id = i.categoria_id
+    $st = db()->prepare("SELECT i.id, i.etiqueta, i.nombre, i.cantidad, cat.nombre categoria FROM items i LEFT JOIN categorias cat ON cat.id = i.categoria_id
         WHERE i.estado = 'disponible' AND i.conectado_a IS NULL AND i.id <> ? AND COALESCE(cat.nombre, '') NOT IN ('Computador', 'Portatil', 'Servidor', 'Servidor virtual', 'Impresora', 'Access point')
         ORDER BY i.nombre LIMIT 500");
     $st->execute([(int)$excluir]);
     $h = '<div class="campo"><label>Accesorio conectado' . ($excluir ? '' : ' (opcional)') . '</label><select name="acc_id" data-buscar data-crear="acc_nuevo" data-placeholder="Escribe: adaptador, multipuerto, cargador...">'
         . '<option value="">Escoge uno disponible o escribe uno nuevo…</option>';
-    foreach ($st as $a) $h .= '<option value="' . (int)$a['id'] . '">' . e($a['nombre']) . ' · ' . e($a['etiqueta']) . ($a['categoria'] ? ' (' . e($a['categoria']) . ')' : '') . '</option>';
+    foreach ($st as $a) $h .= '<option value="' . (int)$a['id'] . '">' . e($a['nombre']) . ' · ' . e($a['etiqueta']) . ($a['categoria'] ? ' (' . e($a['categoria']) . ')' : '') . ((int)$a['cantidad'] > 1 ? ' · hay ' . (int)$a['cantidad'] : '') . '</option>';
     $h .= '</select><small>Adaptador de red, multipuerto, cargador… Si no está en el inventario, escribe el nombre y dale "+ Agregar": se crea y queda conectado</small></div>';
     $cats = db()->query('SELECT id, nombre FROM categorias ORDER BY nombre')->fetchAll();
     $per = 0;
@@ -369,7 +391,7 @@ require __DIR__ . '/inc/header.php';
     <?php endif; ?>
     <?php if (col_es_servidor()): ?>
     <div class="campo"><label>Servidor</label><input type="hidden" name="es_servidor_form" value="1">
-      <label style="display:flex;gap:8px;align-items:center;font-family:inherit;text-transform:none;letter-spacing:0;font-size:14px;padding:9px 0"><input type="checkbox" name="es_servidor" value="1" <?= !empty($item['es_servidor']) ? 'checked' : '' ?>> Hace de servidor</label>
+      <div style="display:flex;gap:8px;align-items:center;padding:10px 0"><input type="checkbox" id="es_servidor" name="es_servidor" value="1" style="width:auto;margin:0" <?= !empty($item['es_servidor']) ? 'checked' : '' ?>><span onclick="document.getElementById('es_servidor').click()" style="cursor:pointer">Hace de servidor</span></div>
       <small>Para un PC o portátil que corre un sistema (como el SIS): sale resaltado como servidor en Red</small></div>
     <?php endif; ?>
     <div class="campo"><label>Ubicacion fisica</label><input name="ubicacion" value="<?= e($item['ubicacion'] ?? '') ?>" placeholder="1er piso · Recepción"></div>
@@ -396,9 +418,13 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Condición física (opcional)</label><input name="condicion" list="condiciones" maxlength="120" value="<?= e($item['condicion'] ?? '') ?>" placeholder="Ej. Mal estado · sin disco"><datalist id="condiciones"><option value="Nuevo"><option value="Usado"><option value="Mal estado"><option value="Regular"><option value="Mal estado · sin disco"><option value="Pantalla rota"><option value="Batería dañada"></datalist><small>Nuevo sale en verde, Usado en gris y cualquier falla en rojo, junto al estado</small></div>
     <div class="campo ancho"><label>Notas</label><textarea name="notas"><?= e($item['notas'] ?? '') ?></textarea></div>
   </div>
-  <?php if (!$id && col_conectado()): ?>
-  <div class="rejilla" style="margin-top:10px">
-    <?= campo_accesorio(0) ?>
+  <?php if (col_conectado() && (!$id || in_array($item['estado'] ?? '', ['asignado', 'instalado', 'disponible', 'mantenimiento'], true)) && empty($item['conectado_a'])):
+    $ya = [];
+    if ($id) { $st = db()->prepare('SELECT etiqueta, nombre FROM items WHERE conectado_a = ? ORDER BY etiqueta'); $st->execute([$id]); $ya = $st->fetchAll(); } ?>
+  <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--borde)">
+    <b>Accesorios</b> <small class="tenue">adaptador de red, multipuerto, cargador… (se descuentan del inventario)</small>
+    <?php if ($ya): ?><p style="margin:6px 0">Ya tiene: <?= implode(', ', array_map(fn($a) => '<span class="mono">' . e($a['etiqueta']) . '</span> ' . e($a['nombre']), $ya)) ?>. Para quitar uno, hazlo desde la ficha.</p><?php endif; ?>
+    <div class="rejilla" style="margin-top:6px"><?= campo_accesorio($id) ?></div>
   </div>
   <?php endif; ?>
   <p><button class="btn btn-primario">Guardar</button>
