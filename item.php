@@ -36,6 +36,7 @@ function cambiar_responsable($item, $nuevo, $motivo, $fecha) {
     $estado = $nuevo ? (in_array($item['estado'], ['disponible', 'instalado', 'extraviado'], true) ? 'asignado' : $item['estado']) : (in_array($item['estado'], ['asignado', 'instalado', 'extraviado'], true) ? 'disponible' : $item['estado']);
     db()->prepare('UPDATE items SET colaborador_id = ?, estado = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')->execute([$nuevo ?: null, $estado, $id]);
     if (!$nuevo) quitar_ip_si_libre($id);
+    if (col_conectado()) db()->prepare("UPDATE items SET colaborador_id = ?, estado = ? WHERE conectado_a = ? AND estado IN ('asignado', 'instalado')")->execute([$nuevo ?: null, $nuevo ? 'asignado' : 'instalado', $id]);
     db()->prepare('INSERT INTO movimientos (item_id, tipo, colaborador_id, usuario_id, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?)')
         ->execute([$id, 'cambio_dueno', $nuevo ?: null, usuario()['id'], 'Cambio de responsable: de ' . $de . ' a ' . $a . ' — ' . $motivo, $fecha . ' ' . date('H:i:s')]);
     auditar('items', $id, ['responsable' => $de, 'estado' => $item['estado']], ['responsable' => $a, 'estado' => $estado], $motivo);
@@ -109,6 +110,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
         $pdo->commit();
         flash('Separado en ' . implode(', ', $nuevas) . '. Cada parte se entrega o presta por aparte.');
         ir('items.php?q=' . urlencode($item['etiqueta']));
+    }
+
+    if ($accion === 'accesorio' && $item && col_conectado()) {
+        [$ok, $msg] = conectar_accesorio($item, $_POST['acc_id'] ?? '', $_POST['acc_nuevo'] ?? '', $_POST['acc_categoria'] ?? 0);
+        flash($msg, $ok ? 'ok' : 'error');
+        ir('item.php?id=' . $id);
+    }
+
+    if ($accion === 'accesorio_quitar' && $item && col_conectado()) {
+        $st = db()->prepare('SELECT * FROM items WHERE id = ? AND conectado_a = ?');
+        $st->execute([(int)($_POST['acc'] ?? 0), $id]);
+        if ($a = $st->fetch()) {
+            db()->prepare("UPDATE items SET conectado_a = NULL, colaborador_id = NULL, estado = 'disponible', ubicacion = 'Sistemas', actualizado = NOW() WHERE id = ?")->execute([$a['id']]);
+            $motivo = trim($_POST['motivo'] ?? '');
+            registrar_movimiento($a['id'], 'desconectado', 'Se quitó de ' . $item['etiqueta'] . ', vuelve a sistemas' . ($motivo ? ': ' . $motivo : ''));
+            registrar_movimiento($id, 'accesorio', 'Se le quitó ' . $a['etiqueta'] . ' · ' . $a['nombre'] . ($motivo ? ': ' . $motivo : ''));
+            auditar('items', (int)$a['id'], ['conectado a' => $item['etiqueta']], ['conectado a' => null], $motivo ?: 'Accesorio quitado');
+            flash($a['etiqueta'] . ' se quitó y quedó disponible en sistemas');
+        }
+        ir('item.php?id=' . $id);
     }
 
     if ($accion === 'nota' && $item) {
@@ -205,11 +226,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             $id = (int)db()->lastInsertId();
             registrar_movimiento($id, 'alta', 'Item creado');
             auditar('items', $id, null, null, 'Equipo creado');
+            if (col_conectado() && ($_POST['acc_id'] ?? '') !== '') {
+                $st = db()->prepare('SELECT * FROM items WHERE id = ?');
+                $st->execute([$id]);
+                [$ok, $msg] = conectar_accesorio($st->fetch(), $_POST['acc_id'], $_POST['acc_nuevo'] ?? '', $_POST['acc_categoria'] ?? 0);
+                flash($ok ? 'Guardado. ' . $msg : 'Guardado, pero el accesorio no: ' . $msg, $ok ? 'ok' : 'error');
+            }
         }
         if (!flash_pendiente()) flash('Guardado');
         ir($volver ?: 'item.php?id=' . $id);
     }
     $item = array_merge($item ?? [], $d, ['etiqueta' => $etiqueta]);
+}
+
+function col_conectado() {
+    static $hay = null;
+    if ($hay === null) { try { db()->query('SELECT conectado_a FROM items LIMIT 1'); $hay = true; } catch (Throwable $e) { $hay = false; } }
+    return $hay;
+}
+
+// conecta un accesorio (uno que ya esta en el inventario, o uno nuevo que se crea aqui) a su equipo
+function conectar_accesorio(array $padre, $acc, $nombre_nuevo, $cat_nueva) {
+    $pid = (int)$padre['id'];
+    if ($acc === 'nuevo') {
+        $nombre_nuevo = trim(preg_replace('/\s+/', ' ', (string)$nombre_nuevo));
+        if ($nombre_nuevo === '' || mb_strlen($nombre_nuevo) > 150) return [false, 'Escribe el nombre del accesorio'];
+        $cat = (int)$cat_nueva ?: null;
+        $etq = siguiente_etiqueta($cat);
+        db()->prepare("INSERT INTO items (etiqueta, nombre, categoria_id, cantidad, estado, creado) VALUES (?, ?, ?, 1, 'disponible', NOW())")->execute([$etq, $nombre_nuevo, $cat]);
+        $acc = (int)db()->lastInsertId();
+        registrar_movimiento($acc, 'alta', 'Item creado como accesorio de ' . $padre['etiqueta']);
+        auditar('items', $acc, null, null, 'Creado como accesorio de ' . $padre['etiqueta']);
+    }
+    $acc = (int)$acc;
+    $st = db()->prepare('SELECT * FROM items WHERE id = ?');
+    $st->execute([$acc]);
+    $a = $st->fetch();
+    if (!$a || $acc === $pid) return [false, 'Accesorio no válido'];
+    if (!in_array($a['estado'], ['disponible', 'asignado', 'instalado'], true)) return [false, $a['etiqueta'] . ' está ' . (estados_item()[$a['estado']] ?? $a['estado']) . ': no se puede conectar'];
+    if (!empty($a['conectado_a']) && (int)$a['conectado_a'] !== $pid) return [false, $a['etiqueta'] . ' ya está conectado a otro equipo: primero quítalo de allá'];
+    // el accesorio va con su equipo: misma persona, mismo sitio
+    $estado = !empty($padre['colaborador_id']) ? 'asignado' : 'instalado';
+    db()->prepare('UPDATE items SET conectado_a = ?, colaborador_id = ?, estado = ?, ubicacion = ?, prestado_a = NULL, actualizado = NOW() WHERE id = ?')
+        ->execute([$pid, $padre['colaborador_id'] ?: null, $estado, 'Conectado a ' . $padre['etiqueta'], $acc]);
+    registrar_movimiento($acc, 'conectado', 'Conectado a ' . $padre['etiqueta'] . ' · ' . $padre['nombre']);
+    registrar_movimiento($pid, 'accesorio', 'Se le conectó ' . $a['etiqueta'] . ' · ' . $a['nombre']);
+    auditar('items', $acc, ['conectado a' => null], ['conectado a' => $padre['etiqueta']], 'Accesorio');
+    return [true, $a['etiqueta'] . ' (' . $a['nombre'] . ') quedó conectado a ' . $padre['etiqueta']];
+}
+
+// campo para escoger el accesorio: uno disponible del inventario, o escribir uno nuevo y darle "+ Agregar"
+function campo_accesorio($excluir) {
+    $st = db()->prepare("SELECT i.id, i.etiqueta, i.nombre, cat.nombre categoria FROM items i LEFT JOIN categorias cat ON cat.id = i.categoria_id
+        WHERE i.estado = 'disponible' AND i.conectado_a IS NULL AND i.id <> ? AND COALESCE(cat.nombre, '') NOT IN ('Computador', 'Portatil', 'Servidor', 'Servidor virtual', 'Impresora', 'Access point')
+        ORDER BY i.nombre LIMIT 500");
+    $st->execute([(int)$excluir]);
+    $h = '<div class="campo"><label>Accesorio conectado' . ($excluir ? '' : ' (opcional)') . '</label><select name="acc_id" data-buscar data-crear="acc_nuevo" data-placeholder="Escribe: adaptador, multipuerto, cargador...">'
+        . '<option value="">Escoge uno disponible o escribe uno nuevo…</option>';
+    foreach ($st as $a) $h .= '<option value="' . (int)$a['id'] . '">' . e($a['nombre']) . ' · ' . e($a['etiqueta']) . ($a['categoria'] ? ' (' . e($a['categoria']) . ')' : '') . '</option>';
+    $h .= '</select><small>Adaptador de red, multipuerto, cargador… Si no está en el inventario, escribe el nombre y dale "+ Agregar": se crea y queda conectado</small></div>';
+    $cats = db()->query('SELECT id, nombre FROM categorias ORDER BY nombre')->fetchAll();
+    $per = 0;
+    foreach ($cats as $c) if (in_array(mb_strtolower($c['nombre']), ['periferico', 'periférico'], true)) $per = (int)$c['id'];
+    $h .= '<div class="campo"><label>Categoría (si es nuevo)</label><select name="acc_categoria">';
+    foreach ($cats as $c) $h .= '<option value="' . (int)$c['id'] . '"' . ((int)$c['id'] === $per ? ' selected' : '') . '>' . e($c['nombre']) . '</option>';
+    return $h . '</select></div>';
 }
 
 function col_es_servidor() {
@@ -315,6 +396,11 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Condición física (opcional)</label><input name="condicion" list="condiciones" maxlength="120" value="<?= e($item['condicion'] ?? '') ?>" placeholder="Ej. Mal estado · sin disco"><datalist id="condiciones"><option value="Nuevo"><option value="Usado"><option value="Mal estado"><option value="Regular"><option value="Mal estado · sin disco"><option value="Pantalla rota"><option value="Batería dañada"></datalist><small>Nuevo sale en verde, Usado en gris y cualquier falla en rojo, junto al estado</small></div>
     <div class="campo ancho"><label>Notas</label><textarea name="notas"><?= e($item['notas'] ?? '') ?></textarea></div>
   </div>
+  <?php if (!$id && col_conectado()): ?>
+  <div class="rejilla" style="margin-top:10px">
+    <?= campo_accesorio(0) ?>
+  </div>
+  <?php endif; ?>
   <p><button class="btn btn-primario">Guardar</button>
     <a class="btn btn-borde" href="<?= e($volver ?: ($id ? 'item.php?id=' . $id : $lista)) ?>">Cancelar</a></p>
 </form>
@@ -345,6 +431,32 @@ require __DIR__ . '/inc/header.php';
       <?php if ($item['especificaciones']): ?><p style="white-space:pre-line"><small class="tenue">Especificaciones</small><br><?= e($item['especificaciones']) ?></p><?php endif; ?>
       <?php if ($item['notas']): ?><p style="white-space:pre-line"><small class="tenue">Notas</small><br><?= e($item['notas']) ?></p><?php endif; ?>
     </div>
+    <?php if (col_conectado()):
+      $st = db()->prepare('SELECT i.id, i.etiqueta, i.nombre, i.marca, i.modelo, cat.nombre categoria FROM items i LEFT JOIN categorias cat ON cat.id = i.categoria_id WHERE i.conectado_a = ? ORDER BY i.etiqueta');
+      $st->execute([$id]);
+      $accs = $st->fetchAll();
+      $padre = null;
+      if (!empty($item['conectado_a'])) { $st = db()->prepare('SELECT id, etiqueta, nombre FROM items WHERE id = ?'); $st->execute([$item['conectado_a']]); $padre = $st->fetch(); } ?>
+    <?php if ($padre): ?><div class="aviso" style="margin:0 0 12px">Este accesorio está conectado a <a href="item.php?id=<?= (int)$padre['id'] ?>"><b><?= e($padre['etiqueta']) ?></b> · <?= e($padre['nombre']) ?></a>. Para quitarlo, hazlo desde la ficha de ese equipo.</div><?php endif; ?>
+    <?php if ($accs || (es_admin() && !$padre && in_array($item['estado'], ['asignado', 'instalado', 'disponible', 'mantenimiento'], true))): ?>
+    <div class="tarjeta">
+      <h2>Accesorios conectados <small class="tenue"><?= count($accs) ?: '' ?></small></h2>
+      <?php if (!$accs): ?><p class="tenue" style="margin:0 0 8px">Sin accesorios. Adaptador de red, multipuerto, cargador, docking…</p><?php endif; ?>
+      <?php foreach ($accs as $a): ?>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--borde)">
+          <span><a class="mono" href="item.php?id=<?= (int)$a['id'] ?>"><?= e($a['etiqueta']) ?></a> <?= e($a['nombre']) ?> <small class="tenue">· <?= e(trim(($a['categoria'] ?? '') . ' · ' . trim(($a['marca'] ?? '') . ' ' . ($a['modelo'] ?? '')), ' ·')) ?></small></span>
+          <?php if (es_admin()): ?><form method="post" onsubmit="return confirm('¿Quitar <?= e(addslashes($a['etiqueta'])) ?> de este equipo? Vuelve a estar disponible en sistemas.')"><?= csrf_campo() ?><input type="hidden" name="accion" value="accesorio_quitar"><input type="hidden" name="acc" value="<?= (int)$a['id'] ?>"><button class="btn btn-borde btn-sm">Quitar</button></form><?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+      <?php if (es_admin() && !$padre): ?>
+      <form method="post" style="margin-top:10px"><?= csrf_campo() ?><input type="hidden" name="accion" value="accesorio">
+        <div class="rejilla"><?= campo_accesorio($id) ?></div>
+        <button class="btn btn-borde btn-sm" style="margin-top:8px">Conectar</button>
+      </form>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
     <div class="tarjeta">
       <h2>Quién lo ha tenido y cuánto duró</h2>
       <?= pintar_tenencias(tenencias_item($item)) ?>

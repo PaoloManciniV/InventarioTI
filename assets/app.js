@@ -141,7 +141,7 @@ function buscadores() {
     var inp = document.createElement('input');
     inp.type = 'search';
     inp.autocomplete = 'off';
-    inp.placeholder = 'Escribe nombre o cédula...';
+    inp.placeholder = sel.dataset.placeholder || 'Escribe nombre o cédula...';
     var lista = document.createElement('div');
     lista.className = 'combo-lista';
     sel.parentNode.insertBefore(caja, sel);

@@ -385,6 +385,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `categoria_id` int(11) DEFAULT NULL,
   `formato` varchar(20) DEFAULT NULL,
   `es_servidor` tinyint(1) NOT NULL DEFAULT 0,
+  `conectado_a` int(11) DEFAULT NULL COMMENT 'accesorio conectado a otro equipo',
   `marca` varchar(80) DEFAULT NULL,
   `modelo` varchar(120) DEFAULT NULL,
   `serial` varchar(120) DEFAULT NULL,

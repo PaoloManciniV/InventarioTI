@@ -74,6 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <a href="recuperar.php" style="font-size:13px;text-align:center">¿Olvidaste tu clave?</a>
 </form></div>
 <style>@keyframes parpadeo { 50% { opacity: 0; } }</style>
-<script src="assets/app.js?v=17"></script>
+<script src="assets/app.js?v=18"></script>
 </body>
 </html>
