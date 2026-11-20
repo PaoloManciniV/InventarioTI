@@ -6,6 +6,9 @@ requiere_modulo('web');
 
 $mes = preg_match('/^\d{4}-\d{2}$/', $_GET['mes'] ?? '') ? $_GET['mes'] : date('Y-m');
 $tipo = $_GET['tipo'] ?? '';
+// un dia puntual (opcional); si se escoge, el mes es el de ese dia
+$dia = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['dia'] ?? '') && strtotime($_GET['dia']) ? $_GET['dia'] : '';
+if ($dia !== '') $mes = substr($dia, 0, 7);
 $tipos = tipos_actualizacion();
 if ($tipo !== '' && !isset($tipos[$tipo])) $tipo = '';
 
@@ -48,13 +51,13 @@ if (!web_configurada()) {
 if (!$error && ($_GET['formato'] ?? '') === 'xlsx') {
     require __DIR__ . '/inc/xlsx.php';
     $f = [['Fecha', 'Inicio', 'Fin', 'Resultado', 'Duración total (s)', 'Página en aviso (s)', 'Nuevas', 'Cambiadas', 'Eliminadas', 'Filas', 'Equipo', 'Usuario de Windows']];
-    foreach (array_reverse($lista) as $a) {
+    foreach (array_reverse($lista) as $a) { if ($dia !== '' && substr($a['fila']['fin'], 0, 10) !== $dia) continue;
         $r = $a['fila'];
         $f[] = [date('d/m/Y', strtotime($r['fin'])), date('g:i:s a', strtotime($r['inicio'])), date('g:i:s a', strtotime($r['fin'])), $tipos[$a['tipo']][0],
             $r['segundos'] !== null ? (int)$r['segundos'] : '', $a['aviso'] && $a['aviso']['segundos'] !== null ? (int)$a['aviso']['segundos'] : '',
             $r['nuevas'] ?? '', $r['cambiadas'] ?? '', $r['eliminadas'] ?? '', $r['filas'] ?? '', $r['equipo'] ?? '', $r['usuario'] ?? ''];
     }
-    xlsx_enviar('Actualizaciones_pagina_web_' . $mes . '.xlsx', ['Actualizaciones' => ['anchos' => [11, 12, 12, 15, 12, 12, 9, 10, 10, 9, 16, 20], 'filas' => $f, 'negrita' => [0]]]);
+    xlsx_enviar('Actualizaciones_pagina_web_' . ($dia ?: $mes) . '.xlsx', ['Actualizaciones' => ['anchos' => [11, 12, 12, 15, 12, 12, 9, 10, 10, 9, 16, 20], 'filas' => $f, 'negrita' => [0]]]);
     exit;
 }
 
@@ -65,7 +68,7 @@ foreach ($lista as $a) {
     $conteo[$a['tipo']]++;
     if ($a['aviso'] && $a['aviso']['segundos'] !== null && $a['aviso']['resultado'] === 'ok') { $aviso_total += (int)$a['aviso']['segundos']; $aviso_n++; }
 }
-$ver = $tipo === '' ? $lista : array_values(array_filter($lista, fn($a) => $a['tipo'] === $tipo));
+$ver = array_values(array_filter($lista, fn($a) => ($tipo === '' || $a['tipo'] === $tipo) && ($dia === '' || substr($a['fila']['fin'], 0, 10) === $dia)));
 
 // meses para el filtro: los ultimos 24
 $meses = [];
@@ -79,7 +82,7 @@ $mes_txt = fn($m) => $nom_mes[substr($m, 5, 2)] . ' ' . substr($m, 0, 4);
 ?>
 <div class="cabecera">
   <div><h1>Actualizaciones de la página web</h1><small>Cada vez que el actualizador sube el inventario a la tienda queda aquí: día, hora, cuánto tardó y cuánto estuvo la página en aviso</small></div>
-  <?php if (!$error): ?><div class="acciones"><a class="btn btn-borde" href="?mes=<?= e($mes) ?>&amp;formato=xlsx">Descargar Excel</a></div><?php endif; ?>
+  <?php if (!$error): ?><div class="acciones"><a class="btn btn-borde" href="?mes=<?= e($mes) ?>&amp;dia=<?= e($dia) ?>&amp;formato=xlsx">Descargar Excel</a></div><?php endif; ?>
 </div>
 
 <?php if ($error): ?>
@@ -114,16 +117,23 @@ $mes_txt = fn($m) => $nom_mes[substr($m, 5, 2)] . ' ' . substr($m, 0, 4);
 </div>
 
 <form class="filtros" method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-  <select name="mes" onchange="this.form.submit()"><?php foreach ($meses as $m): ?><option value="<?= $m ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(ucfirst($mes_txt($m))) ?></option><?php endforeach; ?></select>
+  <select name="mes" onchange="this.form.dia.value='';this.form.submit()"><?php foreach ($meses as $m): ?><option value="<?= $m ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(ucfirst($mes_txt($m))) ?></option><?php endforeach; ?></select>
   <select name="tipo" onchange="this.form.submit()"><option value="">Todas</option><?php foreach ($tipos as $k => [$t]): ?><option value="<?= $k ?>" <?= $k === $tipo ? 'selected' : '' ?>><?= e($t) ?> (<?= $conteo[$k] ?>)</option><?php endforeach; ?></select>
+  <input type="date" name="dia" value="<?= e($dia) ?>" max="<?= date('Y-m-d') ?>" onchange="this.form.submit()" title="Ver un solo día">
+  <?php if ($dia !== ''): ?><a class="btn btn-borde" href="?mes=<?= e($mes) ?>&amp;tipo=<?= e($tipo) ?>">Todo el mes</a><?php endif; ?>
 </form>
 
 <div class="tabla-envoltura"><table class="tabla">
-  <thead><tr><th>Fecha</th><th>Hora</th><th>Resultado</th><th style="text-align:right">Duración</th><th style="text-align:right">Página en aviso</th><th>Cambios</th><th>Quién</th></tr></thead><tbody>
-  <?php if (!$ver): ?><tr><td colspan="7" class="vacio">No hay actualizaciones registradas en <?= e($mes_txt($mes)) ?>. Aparecen desde que se corrió el SQL del historial.</td></tr><?php endif; ?>
-  <?php foreach ($ver as $a): $r = $a['fila']; $av = $a['aviso']; ?>
-    <tr><td><?= date('d/m/Y', strtotime($r['fin'])) ?><small><?= e(hace_dia_web($r['fin'])) ?></small></td>
-      <td class="mono"><?= date('g:i a', strtotime($r['inicio'])) ?> → <?= date('g:i a', strtotime($r['fin'])) ?></td>
+  <thead><tr><th>Hora</th><th>Resultado</th><th style="text-align:right">Duración</th><th style="text-align:right">Página en aviso</th><th>Cambios</th><th>Quién</th></tr></thead><tbody>
+  <?php if (!$ver): ?><tr><td colspan="6" class="vacio">No hay actualizaciones registradas <?= $dia !== '' ? 'el ' . date('d/m/Y', strtotime($dia)) : 'en ' . e($mes_txt($mes)) ?>. Aparecen desde que se corrió el SQL del historial.</td></tr><?php endif; ?>
+  <?php $dia_actual = ''; $por_dia = array_count_values(array_map(fn($x) => substr($x['fila']['fin'], 0, 10), $ver));
+  $dsem = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  foreach ($ver as $a): $r = $a['fila']; $av = $a['aviso']; $d = substr($r['fin'], 0, 10);
+    if ($d !== $dia_actual): $dia_actual = $d; $hd = hace_dia_web($r['fin']); ?>
+    <tr class="dia-cabecera"><td colspan="6" style="background:var(--fondo-2, rgba(0,0,0,.04));font-family:var(--mono);font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-size:12px;padding:8px 12px">
+      <?= $hd === 'hoy' || $hd === 'ayer' ? $hd . ' · ' : '' ?><?= $dsem[(int)date('w', strtotime($d))] ?> <?= date('d/m/Y', strtotime($d)) ?> <span class="tenue">· <?= $por_dia[$d] ?></span></td></tr>
+    <?php endif; ?>
+    <tr><td class="mono"><?= date('g:i a', strtotime($r['inicio'])) ?> → <?= date('g:i a', strtotime($r['fin'])) ?></td>
       <td><span class="chip <?= $tipos[$a['tipo']][1] ?>"><?= e($tipos[$a['tipo']][0]) ?></span></td>
       <td class="mono" style="text-align:right"><?= duracion_txt($r['segundos']) ?></td>
       <td class="mono" style="text-align:right"><?= $av ? duracion_txt($av['segundos']) : '—' ?></td>
