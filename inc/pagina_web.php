@@ -91,11 +91,15 @@ function estado_web_ahora() {
 }
 
 // ---------------------------------------------------------------- aviso por correo
-// a quien: MAIL_WEB del .env (si no esta, los mismos de las copias: MAIL_RESPALDOS o MAIL_INVENTARIO) + los que tengan marcado "Página web" en Configuración > Avisos
+// a quien: MAIL_WEB del .env (si no esta, MAIL_RESPALDOS o MAIL_INVENTARIO) + los que tengan marcado "Página web" en Configuración > Avisos;
+// si no hay nadie, los que reciben el reporte de las copias de seguridad
 function correos_web() {
     $l = env('MAIL_WEB', '') ?: (env('MAIL_RESPALDOS', '') ?: env('MAIL_INVENTARIO', ''));
     $fijos = array_values(array_filter(array_map('trim', preg_split('/[,;]/', (string)$l))));
-    return array_values(array_unique(array_merge($fijos, correos_aviso('web_actualizada'))));
+    $todos = array_merge($fijos, correos_aviso('web_actualizada'));
+    // si nadie tiene marcado este aviso, les llega a los mismos que reciben el reporte de las copias de seguridad
+    if (!$todos) $todos = correos_aviso('copias_reporte');
+    return array_values(array_unique($todos));
 }
 
 function correo_web(array $a) {
@@ -161,7 +165,7 @@ function correr_aviso_web($quien) {
     try {
         if (!web_configurada()) throw new RuntimeException('falta WEB_DB_* en el .env');
         if (!correo_configurado()) throw new RuntimeException('el correo no está configurado');
-        if (!correos_web()) throw new RuntimeException('no hay a quién enviar (MAIL_WEB, MAIL_RESPALDOS o MAIL_INVENTARIO)');
+        if (!correos_web()) throw new RuntimeException('no hay a quién enviar: pon MAIL_WEB en el .env o marca "Página web" en Configuración > Avisos por correo');
         $n = avisar_web_nuevas();
         $txt = $GLOBALS['web_aviso_error'] ?: ($n ? $n . ' correo' . ($n > 1 ? 's' : '') . ' enviado' . ($n > 1 ? 's' : '') : 'nada nuevo para avisar');
         $ok = $GLOBALS['web_aviso_error'] === '';
