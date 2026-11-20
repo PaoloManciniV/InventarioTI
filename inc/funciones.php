@@ -869,8 +869,28 @@ function proximo_mant($item) {
     $f = frecuencia_item($item);
     if ($f <= 0) return null;
     if (!empty($item['proximo_mant'])) return $item['proximo_mant'];
-    if (!$item['ultimo_mant']) return date('Y-m-d');
+    if (!$item['ultimo_mant']) {
+        // equipo recien ingresado (dentro de su ciclo): entra en la ronda de los demas, no sale vencido
+        if (!empty($item['creado']) && strtotime($item['creado']) > strtotime("-$f months")) {
+            return ronda_mant($item['categoria_id'] ?? null) ?? date('Y-m-d', strtotime($item['creado'] . " +$f months"));
+        }
+        return date('Y-m-d');
+    }
     return date('Y-m-d', strtotime($item['ultimo_mant'] . " +$f months"));
+}
+
+// la proxima fecha de mantenimiento que tiene la mayoria de equipos (de la misma categoria si hay; si no, de todos)
+function ronda_mant($categoria_id = null) {
+    static $cache = [];
+    $k = (int)$categoria_id;
+    if (array_key_exists($k, $cache)) return $cache[$k];
+    $sql = "SELECT proximo_mant FROM items WHERE proximo_mant >= CURDATE() AND estado NOT IN ('baja', 'extraviado', 'cedido') %s GROUP BY proximo_mant ORDER BY COUNT(*) DESC, proximo_mant LIMIT 1";
+    $f = null;
+    try {
+        if ($k) { $st = db()->prepare(sprintf($sql, 'AND categoria_id = ?')); $st->execute([$k]); $f = $st->fetchColumn() ?: null; }
+        if (!$f) $f = db()->query(sprintf($sql, ''))->fetchColumn() ?: null;
+    } catch (Throwable $e) { $f = null; }
+    return $cache[$k] = $f;
 }
 
 // items que llevan mantenimiento con su frecuencia efectiva
