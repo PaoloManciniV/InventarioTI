@@ -127,7 +127,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
     $etiqueta = strtoupper(trim($_POST['etiqueta'] ?? ''));
     if ($d['ip'] !== null && !filter_var($d['ip'], FILTER_VALIDATE_IP)) $error = 'La IP no es valida';
     // libre = apagado en sistemas, sin ip
-    if ($d['ip'] !== null && $item && ($item['estado'] ?? '') === 'disponible') $error = 'Este equipo está Disponible (libre, apagado): no puede tener IP. Primero cámbialo a "Asignado" o entrégalo con un acta.';
+    // estado escogido en el formulario (nuevo o editar). Asignado sin persona = asignado a su ubicacion (instalado)
+    $est_editables = ['disponible', 'asignado', 'mantenimiento', 'danado', 'extraviado'];
+    $est_antes = $item['estado'] ?? 'disponible';
+    $est_form = $_POST['estado_form'] ?? '';
+    if (in_array($est_form, $est_editables, true) && (!$item || in_array($est_antes, array_merge($est_editables, ['instalado']), true))) {
+        $con_persona = !empty($item['colaborador_id']) || (ctype_digit((string)($_POST['colaborador_id'] ?? '')) && (int)$_POST['colaborador_id'] > 0) || ($_POST['colaborador_id'] ?? '') === 'nuevo';
+        if ($est_form === 'asignado' && !$con_persona) $est_form = 'instalado';
+        if ($est_form !== $est_antes && !($est_form === 'asignado' && $est_antes === 'instalado')) $d['estado'] = $est_form;
+    }
+    $est_final = $d['estado'] ?? $est_antes;
+    if ($d['ip'] !== null && $est_final === 'disponible') $error = 'Un equipo Disponible (libre, apagado) no puede tener IP. Cambia el estado a "Asignado" o quita la IP.';
     if ($d['mac'] !== null) $d['mac'] = strtoupper(str_replace('-', ':', $d['mac']));
     // el pin solo se cambia si escriben uno nuevo
     $pin_nuevo = trim($_POST['pin'] ?? '');
@@ -161,6 +171,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
             db()->prepare("UPDATE items SET etiqueta = ?, $set, actualizado = NOW() WHERE id = ?")
                 ->execute(array_merge([$etiqueta], array_values($d), [$id]));
             auditar('items', $id, $item, array_merge(['etiqueta' => $etiqueta], $d));
+            if (isset($d['estado'])) {
+                if (in_array($d['estado'], ['disponible', 'danado', 'extraviado'], true)) guardar_ultimo_dueno($id);
+                if ($d['estado'] === 'extraviado') db()->prepare('UPDATE items SET colaborador_id = NULL WHERE id = ?')->execute([$id]);
+                if ($d['estado'] === 'disponible') quitar_ip_si_libre($id);
+                registrar_movimiento($id, $d['estado'] === 'instalado' ? 'asignado' : $d['estado'], 'Cambio a ' . ($d['estado'] === 'instalado' ? 'Asignado (a su ubicación)' : estados_item()[$d['estado']]) . ' al editar');
+                $item['estado'] = $d['estado'];
+            }
             // responsable cambiado desde la edicion
             // colaborador nuevo escrito en el campo: se crea (o se reactiva si ya existia con ese nombre)
             if (($_POST['colaborador_id'] ?? '') === 'nuevo' && ($nn = trim(preg_replace('/\s+/', ' ', $_POST['nuevo_colaborador'] ?? ''))) !== '' && mb_strlen($nn) <= 120) {
@@ -251,6 +268,13 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Valor</label><input name="valor" inputmode="decimal" value="<?= e($item['valor'] ?? '') ?>"></div>
     <div class="campo"><label>Tipo de PC (si es computador)</label><select name="formato">
       <?php foreach (formatos_pc() as $k => $v): ?><option value="<?= $k ?>" <?= ($item['formato'] ?? '') === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
+    <?php $est_ahora = $item['estado'] ?? 'disponible';
+    if (!$id || in_array($est_ahora, ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)): ?>
+    <div class="campo"><label>Estado</label><select name="estado_form">
+      <?php foreach (['disponible' => 'Disponible (libre, en sistemas)', 'asignado' => 'Asignado (en uso)', 'mantenimiento' => 'Mantenimiento', 'danado' => 'Dañado', 'extraviado' => 'Extraviado'] as $k => $v): ?>
+        <option value="<?= $k ?>" <?= ($est_ahora === $k || ($k === 'asignado' && $est_ahora === 'instalado')) ? 'selected' : '' ?>><?= $v ?></option>
+      <?php endforeach; ?></select><small>Asignado sin responsable = asignado a su ubicación. Para prestar o entregar a una persona con firma, usa un acta</small></div>
+    <?php endif; ?>
     <div class="campo"><label>Ubicacion fisica</label><input name="ubicacion" value="<?= e($item['ubicacion'] ?? '') ?>" placeholder="1er piso · Recepción"></div>
     <?php if ($id && in_array($item['estado'] ?? '', ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)):
       $gente_r = db()->query('SELECT id, nombre, area FROM colaboradores WHERE activo = 1 ORDER BY nombre')->fetchAll(); ?>
