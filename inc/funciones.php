@@ -907,7 +907,7 @@ function tipo_pc($item) {
 }
 
 function formatos_pc() {
-    return ['' => 'De mesa (torre)', 'all_in_one' => 'All in one', 'mini' => 'Mini PC'];
+    return ['' => 'De mesa (torre)', 'all_in_one' => 'All in one', 'mini' => 'Mini PC', 'portatil' => 'Portátil'];
 }
 
 // movimientos que ya se ven por su acta o mantenimiento y no se repiten

@@ -267,7 +267,10 @@ require __DIR__ . '/inc/header.php';
     <div class="campo"><label>Fecha de compra</label><input type="date" name="fecha_compra" value="<?= e($item['fecha_compra'] ?? '') ?>"></div>
     <div class="campo"><label>Valor</label><input name="valor" inputmode="decimal" value="<?= e($item['valor'] ?? '') ?>"></div>
     <div class="campo"><label>Tipo de PC (si es computador)</label><select name="formato">
-      <?php foreach (formatos_pc() as $k => $v): ?><option value="<?= $k ?>" <?= ($item['formato'] ?? '') === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
+      <?php // un equipo de la categoria Portatil sale como Portátil aunque no se haya escogido
+        $fmt = $item['formato'] ?? '';
+        if ($fmt === '' && !empty($item['categoria_id'])) { $cn = db()->prepare('SELECT nombre FROM categorias WHERE id = ?'); $cn->execute([$item['categoria_id']]); if (mb_strtolower((string)$cn->fetchColumn()) === 'portatil') $fmt = 'portatil'; }
+        foreach (formatos_pc() as $k => $v): ?><option value="<?= $k ?>" <?= $fmt === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
     <?php $est_ahora = $item['estado'] ?? 'disponible';
     if (!$id || in_array($est_ahora, ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)): ?>
     <div class="campo"><label>Estado</label><select name="estado_form">
