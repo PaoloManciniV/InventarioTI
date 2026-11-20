@@ -177,11 +177,11 @@ require __DIR__ . '/inc/header.php';
     <?php continue; elseif ($fila[0] === 'titulo'): ?>
     <tr><td colspan="8" style="padding-top:18px"><b><?= e($fila[1]) ?></b></td></tr>
     <?php continue; endif;
-    $f = $fila[1]; $rep = in_array($f['ip'], $repetidas, true); $srv = in_array($f['categoria'], ['Servidor', 'Servidor virtual'], true); ?>
+    $f = $fila[1]; $rep = in_array($f['ip'], $repetidas, true); $srv = in_array($f['categoria'], ['Servidor', 'Servidor virtual'], true) || !empty($f['es_servidor']); ?>
     <tr<?= strpos($f['ip'], $red_base . '.') === 0 ? ' id="ip-' . e(substr(strrchr($f['ip'], '.'), 1)) . '"' : '' ?> class="<?= trim(($rep ? 'ip-conflicto ' : '') . ($srv ? 'fila-servidor' : '')) ?>"><td class="mono"><b><?= e($f['ip']) ?></b><?= $rep ? ' <span class="chip chip-danado">repetida</span>' : '' ?></td>
       <td><a class="mono" href="item.php?id=<?= $f['id'] ?>"><?= e($f['etiqueta']) ?></a><small><?= e($f['nombre']) ?></small>
         <?php if ($srv && $f['especificaciones']): ?><small class="srv-desc"><?= e($f['especificaciones']) ?></small><?php endif; ?></td>
-      <td><?= $srv ? '<span class="chip chip-servidor">' . e($f['categoria']) . '</span>' : e($f['categoria']) ?></td><td><?= e($f['responsable'] ?: ($f['ubicacion'] ?: '—')) ?></td>
+      <td><?= $srv ? '<span class="chip chip-servidor">' . e(!empty($f['es_servidor']) && !in_array($f['categoria'], ['Servidor', 'Servidor virtual'], true) ? 'Servidor' . ($f['categoria'] ? ' (' . mb_strtolower($f['categoria']) . ')' : '') : $f['categoria']) . '</span>' : e($f['categoria']) ?></td><td><?= e($f['responsable'] ?: ($f['ubicacion'] ?: '—')) ?></td>
       <td class="mono"><?= e($f['hostname'] ?: '') ?></td><td class="mono"><?= e($f['mac'] ?: '') ?></td><td><?= e($f['extension'] ?: '') ?></td>
       <?php if (es_admin()): ?><td class="no-imprimir"><a class="btn btn-borde btn-sm" href="item.php?id=<?= $f['id'] ?>&editar=1&volver=<?= $volver ?>">✎ Editar</a></td><?php endif; ?></tr>
   <?php endforeach; ?>

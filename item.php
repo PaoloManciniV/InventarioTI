@@ -124,6 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
         $d[$k] = $v === '' ? null : $v;
     }
     $d['cantidad'] = max(1, (int)($_POST['cantidad'] ?? 1));
+    // "hace de servidor" (si ya se corrio 72_hace_de_servidor.sql)
+    if (isset($_POST['es_servidor_form']) && col_es_servidor()) $d['es_servidor'] = empty($_POST['es_servidor']) ? 0 : 1;
     $etiqueta = strtoupper(trim($_POST['etiqueta'] ?? ''));
     if ($d['ip'] !== null && !filter_var($d['ip'], FILTER_VALIDATE_IP)) $error = 'La IP no es valida';
     // libre = apagado en sistemas, sin ip
@@ -210,6 +212,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && es_admin()) {
     $item = array_merge($item ?? [], $d, ['etiqueta' => $etiqueta]);
 }
 
+function col_es_servidor() {
+    static $hay = null;
+    if ($hay === null) { try { db()->query('SELECT es_servidor FROM items LIMIT 1'); $hay = true; } catch (Throwable $e) { $hay = false; } }
+    return $hay;
+}
+
 function flash_pendiente() { return !empty($_SESSION['flash']); }
 
 // volver a la lista de donde venia (por ejemplo solo los de Red); si no hay, a los de su categoria
@@ -277,6 +285,11 @@ require __DIR__ . '/inc/header.php';
       <?php foreach (['disponible' => 'Disponible (libre, en sistemas)', 'asignado' => 'Asignado (en uso)', 'mantenimiento' => 'Mantenimiento', 'danado' => 'Dañado', 'extraviado' => 'Extraviado'] as $k => $v): ?>
         <option value="<?= $k ?>" <?= ($est_ahora === $k || ($k === 'asignado' && $est_ahora === 'instalado')) ? 'selected' : '' ?>><?= $v ?></option>
       <?php endforeach; ?></select><small>Asignado sin responsable = asignado a su ubicación. Para prestar o entregar a una persona con firma, usa un acta</small></div>
+    <?php endif; ?>
+    <?php if (col_es_servidor()): ?>
+    <div class="campo"><label>Servidor</label><input type="hidden" name="es_servidor_form" value="1">
+      <label style="display:flex;gap:8px;align-items:center;font-family:inherit;text-transform:none;letter-spacing:0;font-size:14px;padding:9px 0"><input type="checkbox" name="es_servidor" value="1" <?= !empty($item['es_servidor']) ? 'checked' : '' ?>> Hace de servidor</label>
+      <small>Para un PC o portátil que corre un sistema (como el SIS): sale resaltado como servidor en Red</small></div>
     <?php endif; ?>
     <div class="campo"><label>Ubicacion fisica</label><input name="ubicacion" value="<?= e($item['ubicacion'] ?? '') ?>" placeholder="1er piso · Recepción"></div>
     <?php if ($id && in_array($item['estado'] ?? '', ['asignado', 'instalado', 'disponible', 'mantenimiento', 'danado', 'extraviado'], true)):

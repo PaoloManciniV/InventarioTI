@@ -922,12 +922,12 @@ function mant_vencidos_total() {
 function tipo_pc($item) {
     $cat = mb_strtolower((string)($item['categoria'] ?? ''));
     if ($cat === 'portatil') return 'Portátil';
-    if ($cat === 'computador') return ['all_in_one' => 'All in one', 'mini' => 'Mini PC'][$item['formato'] ?? ''] ?? 'PC de mesa';
+    if ($cat === 'computador') return ['all_in_one' => 'All in one', 'portatil' => 'Portátil'][$item['formato'] ?? ''] ?? 'PC de mesa';
     return $item['categoria'] ?? '';
 }
 
 function formatos_pc() {
-    return ['' => 'De mesa (torre)', 'all_in_one' => 'All in one', 'mini' => 'Mini PC', 'portatil' => 'Portátil'];
+    return ['' => 'De mesa (torre)', 'all_in_one' => 'All in one', 'portatil' => 'Portátil'];
 }
 
 // movimientos que ya se ven por su acta o mantenimiento y no se repiten
